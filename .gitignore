@@ -7,6 +7,6 @@
 !README.md
 !.gitignore
 !*.py
-!src
-!include
+!src/**/
+!include/**/
 !CMakeLists.txt
