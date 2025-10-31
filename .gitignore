@@ -1,0 +1,10 @@
+# Ignore everything
+*
+
+# unignore these
+!*.cpp
+!*.h
+!README.md
+!.gitignore
+!*.py
+
