@@ -9,3 +9,4 @@
 !*.py
 !src
 !include
+!CMakeLists.txt
