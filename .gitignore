@@ -7,4 +7,5 @@
 !README.md
 !.gitignore
 !*.py
-
+!src
+!include
