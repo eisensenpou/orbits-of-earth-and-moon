@@ -115,8 +115,11 @@ plt.show()
 
 ---
 
-### 🪐 Animated Earth–Moon System
+### 🪐 Earth–Moon System (Sun-Centered View)
 ![Earth and Moon orbiting the Sun](results/earth_moon_orbits.gif)
+
+### 🌍 Zoomed View (Earth–Moon close-up)
+![Earth and Moon zoomed animation](results/earth_moon_zoom.gif)
 
 The animation shows the Earth and Moon orbiting the Sun.  
 The Moon’s orbit is visually scaled for clarity, revealing the “wobble” as both bodies travel through space.
