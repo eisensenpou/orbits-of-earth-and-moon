@@ -1,14 +1,15 @@
 # Ignore everything
 *
 
-# unignore these
+# Unignore rules
 !*.cpp
 !*.h
 !README.md
 !.gitignore
 !*.py
 !*.gif
-!src/**/
-!include/**/
-!results/**/
+!src/**
+!include/**
+!results/
+!results/**
 !CMakeLists.txt
