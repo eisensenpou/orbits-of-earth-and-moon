@@ -1,10 +1,12 @@
-
+/****************
+ * Author: Sinan Demir
+ * File: simulation.cpp
+ * Date: 10/31/2025
+ * Purpose: Implementation file of simulation
+ *****************/
 
 #include "simulation.h"
-#include "utils.h"
-#include <cmath>
-#include <iostream>
-#include <fstream>  // for CSV output
+
 
 void computeGravitationalForce(CelestialBody& a, CelestialBody& b) {
     /***********************

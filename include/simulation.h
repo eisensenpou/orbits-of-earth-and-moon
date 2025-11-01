@@ -1,11 +1,19 @@
 
-
+/****************
+ * Author: Sinan Demir
+ * File: simulation.h
+ * Date: 10/31/2025
+ * Purpose: Header file for simulation.cpp
+ *****************/
 
 #ifndef SIMULATION_H
 #define SIMULATION_H
 
-#include <iostream>
 #include "body.h"
+#include "utils.h"
+#include <cmath>
+#include <iostream>
+#include <fstream>  // for CSV output
 #include <vector>
 
 //void computeAcceleration(CelestialBody& earth, const CelestialBody& sun);

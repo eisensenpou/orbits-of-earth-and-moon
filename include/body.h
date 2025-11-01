@@ -1,8 +1,9 @@
 /****************
-*Author: Sinan Demir   
-*File: body.h
-*Purpose: 
-*****************/
+ * Author: Sinan Demir
+ * File: body.h
+ * Date: 10/31/2025
+ * Purpose: Defines CelestialBody ADT
+ *****************/
 
 
 #ifndef BODY_H

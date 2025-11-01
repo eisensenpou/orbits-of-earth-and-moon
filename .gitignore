@@ -4,6 +4,7 @@
 # Unignore rules
 !*.cpp
 !*.h
+!main.h
 !README.md
 !.gitignore
 !*.py
