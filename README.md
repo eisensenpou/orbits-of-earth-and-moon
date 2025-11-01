@@ -115,6 +115,14 @@ plt.show()
 
 ---
 
+### 🪐 Animated Earth–Moon System
+![Earth and Moon orbiting the Sun](results/earth_moon_orbits.gif)
+
+The animation shows the Earth and Moon orbiting the Sun.  
+The Moon’s orbit is visually scaled for clarity, revealing the “wobble” as both bodies travel through space.
+
+---
+
 ## 🧠 Physics Model
 
 - Newtonian gravitational interactions (no relativity)
