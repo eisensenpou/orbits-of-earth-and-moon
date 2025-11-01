@@ -2,6 +2,7 @@
 *
 
 # Unignore rules
+!requirements.txt
 !*.cpp
 !*.h
 !main.h
