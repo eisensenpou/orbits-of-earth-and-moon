@@ -27,9 +27,8 @@ earth-and-moon-orbits/
 │   ├── main.cpp
 │   ├── simulation.cpp
 │   └── utils.cpp
-├── polt.py
+├── plot.py
 ├── animate_two_dots.py
-├── animate_scaled_moon.py
 ├── CMakeLists.txt
 └── orbit_three_body.csv
 ```
@@ -63,17 +62,12 @@ pip install matplotlib pandas
 
 ### Static Plot
 ```bash
-python polt.py
+python plot.py
 ```
 
-### Two-dot Animation (real scale)
+### Two-dot Animation (visible Moon orbit)
 ```bash
 python animate_two_dots.py
-```
-
-### Scaled Animation (visible Moon orbit)
-```bash
-python animate_scaled_moon.py
 ```
 
 ---
