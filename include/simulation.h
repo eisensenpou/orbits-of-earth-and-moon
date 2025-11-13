@@ -19,6 +19,7 @@
 //void computeAcceleration(CelestialBody& earth, const CelestialBody& sun);
 void computeGravitationalForce(CelestialBody& a, CelestialBody& b);
 void eulerStep(CelestialBody& body, double dt);
+void rk4Step(std::vector<CelestialBody>& bodies, double dt);
 void runSimulation();
 
 #endif //SIMULATION_H

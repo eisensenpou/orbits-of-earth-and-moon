@@ -1,6 +1,7 @@
 /****************
  * Author: Sinan Demir
- * File: utils
+ * File: utils.h
+ * Date: 10/31/2025
  * Purpose: Defines physical constants in constants namespace
  *****************/
 #ifndef UTILS_H

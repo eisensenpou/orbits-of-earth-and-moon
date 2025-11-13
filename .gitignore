@@ -5,7 +5,6 @@
 !requirements.txt
 !*.cpp
 !*.h
-!include/main
 !README.md
 !.gitignore
 !*.py
