@@ -1,6 +1,6 @@
 # 🌍 Earth and Moon Orbits Simulation
 
-This project simulates the **three-body system** of the Sun, Earth, and Moon — computing their orbits using Newtonian gravity and visualizing the results in both static and animated plots.
+This project simulates the **three-body system** of the Sun, Earth, and Moon — computing their orbits using Newtonian gravity, runge kutta 4 integration, and visualizing the results in both static and animated plots.
 
 ---
 
