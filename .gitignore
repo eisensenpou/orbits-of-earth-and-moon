@@ -9,6 +9,7 @@
 !.gitignore
 !*.py
 !*.gif
+!src/
 !src/**
 !include/
 !include/**
