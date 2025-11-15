@@ -121,27 +121,23 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ### Bodies
 
-  Body    Mass (kg)     Notes
-  ------- ------------- ---------------------------------
-  Sun     1.9891×10³⁰   Free-moving; barycentric wobble
-  Earth   5.972×10²⁴    1 AU; \~30 km/s
-  Moon    7.3477×10²²   384,400 km; 5.145° inclination
+| Body  | Mass (kg)     | Notes                         |
+|-------|---------------|-------------------------------|
+| Sun   | 1.9891×10³⁰   | Free-moving; barycentric wobble |
+| Earth | 5.972×10²⁴    | 1 AU; ~30 km/s                |
+| Moon  | 7.3477×10²²   | 384,400 km; 5.145° inclination |
 
 ------------------------------------------------------------------------
 
 ## 🖼 Visualizations
 
-`results/orbit_3d.png`\
-`results/orbit_3d_exaggerated.png`
+### Actual Orbits
 
-------------------------------------------------------------------------
+(results/orbit_3d.mp4)
 
-## ✨ Future Improvements
+### Exaggerated Moon Orbit
 
--   Symplectic integrators
--   GPU acceleration
--   Full solar system
--   Adaptive timesteps
+(results/orbit_3d_exaggerated.mp4)
 
 ------------------------------------------------------------------------
 
@@ -155,4 +151,4 @@ visualization.
 
 ## 🛰️ License
 
-MIT License
+MIT License (LICENSE)
