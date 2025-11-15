@@ -133,11 +133,11 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ### Actual Orbits
 
-(results/orbit_3d.mp4)
+![Earth and Moon orbiting the Sun](results/orbit_3d.mp4)
 
 ### Exaggerated Moon Orbit
 
-(results/orbit_3d_exaggerated.mp4)
+![Eart and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbit_3d_exaggerated.mp4)
 
 ------------------------------------------------------------------------
 
