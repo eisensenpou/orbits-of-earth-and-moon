@@ -191,61 +191,119 @@ void runSimulation() {
      * @note: Now supports full 3D positions and velocities.
      *********************/
 
-    // Define bodies in 3D (z and vz now included)
     std::vector<CelestialBody> bodies = {
-        //      name    mass           x                    y   z   vx     vy   vz
-        {"Sun",   constants::M_SUN,     0,                   0,  0,   0,     0,   0},
-
-        // Earth starts in the ecliptic plane (z = 0)
-        {"Earth", 5.972e24,
-                  1.47098074e11,        0,  0,  // position
-                  30300,                0,  0}, // velocity
-
-        // Moon with slight inclination (5.145°)
-        {
-            "Moon",
-            7.3477e22,
-
-            // Position relative to Earth
-            1.47098074e11 + 384400000 * std::cos(constants::MOON_INCLINATION),
-            0,
-            384400000 * std::sin(constants::MOON_INCLINATION),
-
-            // Velocity = Earth's + moon orbital speed, inclined
-            30300 + 1022 * std::cos(constants::MOON_INCLINATION),
-            0,
-            1022 * std::sin(constants::MOON_INCLINATION)
-        }
+        // name   mass              x      y   z     vx   vy   vz
+        {"Sun",   constants::M_SUN, 0.0,   0.0, 0.0,  0.0, 0.0, 0.0},
+        {"Earth", 5.972e24,          0.0,   0.0, 0.0,  0.0, 0.0, 0.0},
+        {"Moon",  7.3477e22,         0.0,   0.0, 0.0,  0.0, 0.0, 0.0}
     };
 
     CelestialBody& sun   = bodies[0];
     CelestialBody& earth = bodies[1];
     CelestialBody& moon  = bodies[2];
 
-    // --- Correct the Earth–Moon barycenter in 3D ---
-    double mass_ratio = moon.mass / earth.mass;
+    // ============================
+    // 1. Define orbital parameters
+    // ============================
 
-    // Move Earth slightly in -z to balance Moon's +z position
-    earth.z = -mass_ratio * moon.z;
+    const double r_earth = 1.47098074e11;     // perihelion ~1 AU
+    const double r_moon  = 384400000.0;       // mean lunar distance (m)
 
-    // Give Earth a small -vz to balance Moon's +vz
-    earth.vz = -mass_ratio * moon.vz;
+    // Earth circular orbital speed around Sun
+    const double v_earth = std::sqrt(constants::G * constants::M_SUN / r_earth);
 
+    // Moon circular speed around Earth
+    const double v_moon  = std::sqrt(constants::G * (earth.mass + moon.mass) / r_moon);
 
-    // Prepare output file (3D columns)
+    // ================================
+    // 2. Initial positions (geometric)
+    // ================================
+
+    // Earth starts at +x axis
+    earth.x = r_earth;
+    earth.y = 0.0;
+    earth.z = 0.0;
+
+    // Moon initially displaced along +y from Earth
+    moon.x = earth.x;
+    moon.y = earth.y + r_moon;
+    moon.z = 0.0;
+
+    // ================================
+    // 3. Initial velocities (tangential)
+    // ================================
+
+    // Earth moves tangentially +y direction
+    earth.vx = 0.0;
+    earth.vy = v_earth;     // NOTE: THIS is the major fix—your version had vx=30300
+    earth.vz = 0.0;
+
+    // Moon velocity = Earth velocity + tangential component (prograde)
+    // Since moon is at +y from Earth, tangential velocity is in −x direction
+    moon.vx = earth.vx - v_moon;
+    moon.vy = earth.vy;
+    moon.vz = 0.0;
+
+    // ======================================================
+    // 4. Tilt the Moon’s orbit by 5.145° about the x-axis
+    // ======================================================
+    {
+        double inc = constants::MOON_INCLINATION;
+        double cosI = std::cos(inc);
+        double sinI = std::sin(inc);
+
+        // --- Rotate Moon position relative to Earth ---
+        double rel_y = moon.y - earth.y;
+        double rel_z = moon.z - earth.z;
+
+        moon.y = earth.y + rel_y * cosI;
+        moon.z = earth.z + rel_y * sinI;
+
+        // --- Rotate Moon velocity relative to Earth ---
+        double rel_vy = moon.vy - earth.vy;
+        double rel_vz = moon.vz - earth.vz;
+
+        moon.vy = earth.vy + rel_vy * cosI;
+        moon.vz = earth.vz + rel_vy * sinI;
+    }
+
+    // ======================================================
+    // 5. Make barycenter stationary (recommended)
+    // ======================================================
+
+    double px = sun.mass * sun.vx + earth.mass * earth.vx + moon.mass * moon.vx;
+    double py = sun.mass * sun.vy + earth.mass * earth.vy + moon.mass * moon.vy;
+    double pz = sun.mass * sun.vz + earth.mass * earth.vz + moon.mass * moon.vz;
+
+    sun.vx -= px / sun.mass;
+    sun.vy -= py / sun.mass;
+    sun.vz -= pz / sun.mass;
+
+    // ======================================================
+    // 6. Optional tiny barycenter correction (your original)
+    // ======================================================
+    {
+        double mass_ratio = moon.mass / earth.mass;
+        earth.z  = -mass_ratio * moon.z;
+        earth.vz = -mass_ratio * moon.vz;
+    }
+
+    // ======================================================
+    // 7. CSV output file
+    // ======================================================
+
     std::ofstream file("orbit_three_body.csv");
     file << "step,"
          << "x_sun,y_sun,z_sun,"
          << "x_earth,y_earth,z_earth,"
          << "x_moon,y_moon,z_moon\n";
 
-    const int steps = 8766; // one year (hourly)
-    const double dt = constants::DT;
+    const int steps = 8766;            // 1 year (hourly)
+    const double dt = constants::DT;   // your Δt
 
     for (int i = 0; i < steps; ++i) {
         rk4Step(bodies, dt);
 
-        // Write data for visualization
         file << i << ","
              << sun.x   << "," << sun.y   << "," << sun.z   << ","
              << earth.x << "," << earth.y << "," << earth.z << ","
