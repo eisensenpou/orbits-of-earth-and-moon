@@ -2,16 +2,7 @@
 
 This project simulates the **three-body system** of the Sun, Earth, and Moon — computing their orbits using Newtonian gravity, runge kutta 4 integration, and visualizing the results in both static and animated plots.
 
----
-
-## 🚀 Overview
-
-- Written in **C++** for physics simulation.
-- Exports results as `orbit_three_body.csv`.
-- Includes **Python visualizations** for:
-  - Static orbits with zoomed inset.
-  - Animated Sun–Earth–Moon motion.
-  - Scaled Moon orbits for clearer visualization.
+**This branch only focuses on 2D orbiting.**
 
 ---
 
@@ -72,33 +63,6 @@ python animate_two_dots.py
 
 ---
 
-## 🎥 Saving Animations Automatically
-
-At the end of any animation script, add:
-
-```python
-import shutil
-
-# --- Save animation automatically ---
-if shutil.which("ffmpeg"):
-    ani.save("earth_moon_orbits.mp4", writer="ffmpeg", fps=30)
-    print("✅ Saved animation as earth_moon_orbits.mp4")
-elif shutil.which("magick"):
-    ani.save("earth_moon_orbits.gif", writer="imagemagick", fps=30)
-    print("✅ Saved animation as earth_moon_orbits.gif")
-else:
-    print("⚠️ ffmpeg or ImageMagick not found — showing only in window.")
-
-plt.show()
-```
-
-> 🧰 Install dependencies:
-> - **Ubuntu / Fedora:** `sudo apt install ffmpeg` or `sudo dnf install ffmpeg`
-> - **macOS:** `brew install ffmpeg`
-> - **Windows:** download FFmpeg from [ffmpeg.org](https://ffmpeg.org)
-
----
-
 ## 🌌 Example Results
 
 | View | Description |
@@ -145,6 +109,6 @@ A hobbyist exploring orbital mechanics, physics simulations, and visualization.
 
 ---
 
-## 🛰️ License
+## 🛰️ License (LICENSE)
 
 **MIT License** — free to use, modify, and share.
