@@ -1,150 +1,158 @@
-# 🌍 Earth and Moon Orbits Simulation
+# 🚀 **Sun--Earth--Moon Orbital Dynamics Simulator**
 
-This project simulates the **three-body system** of the Sun, Earth, and Moon — computing their orbits using Newtonian gravity, runge kutta 4 integration, and visualizing the results in both static and animated plots.
+### *High-precision 3-body gravitational simulation using the Runge--Kutta 4 integrator*
 
----
+This project models the **three-body gravitational system** of the Sun,
+Earth, and Moon using Newtonian mechanics and a custom-built **RK4
+(Runge--Kutta 4)** integrator written in **C++17**. The output is
+visualized in **Python** using interactive 3D plots and animations.
 
-## 🚀 Overview
+------------------------------------------------------------------------
 
-- Written in **C++** for physics simulation.
-- Exports results as `orbit_three_body.csv`.
-- Includes **Python visualizations** for:
-  - Static orbits with zoomed inset.
-  - Animated Sun–Earth–Moon motion.
-  - Scaled Moon orbits for clearer visualization.
+## 🌌 Features
 
----
+### 🛰️ **Physics Simulation (C++)**
 
-## 🧩 Project Structure
+-   Full **3-body gravitational interaction**
+-   Classical **Newtonian gravity**
+-   **3D vector dynamics** (x, y, z)
+-   **Runge--Kutta 4 (RK4)** numerical integrator
+-   Correct **barycentric motion** of the Sun
+-   Accurate **Earth orbital motion**
+-   Moon orbit with **5.145° inclination**
+-   One-year simulation; **hourly time step**
 
-```
-earth-and-moon-orbits/
-├── include/
-│   ├── body.h
-│   ├── simulation.h
-│   ├── utils.h
-├── src/
-│   ├── main.cpp
-│   ├── simulation.cpp
-│   └── utils.cpp
-├── plot.py
-├── animate_two_dots.py
-├── CMakeLists.txt
-└── orbit_three_body.csv
-```
+### 📊 **Visualization (Python)**
 
----
+-   3D Sun--Earth--Moon trajectories
+-   Earth-centered Moon orbit view
+-   Optional **exaggerated Moon orbit** for clarity
+-   Export animations to **.mp4** or **.gif**
+-   Fully interactive camera controls
+
+------------------------------------------------------------------------
+
+## 📁 Project Structure
+
+    earth-and-moon-orbits/
+    ├── include/
+    │   ├── body.h
+    │   ├── main.h
+    │   ├── simulation.h
+    │   ├── utils.h
+    ├── src/
+    │   ├── main.cpp
+    │   ├── simulation.cpp
+    │   └── utils.cpp
+    ├── 3Dplot.py
+    ├── 3D_exaggerated_plot.py
+    ├── orbit_three_body.csv
+    ├── requirements.txt
+    └── CMakeLists.txt
+
+------------------------------------------------------------------------
 
 ## ⚙️ Building the Simulation
 
-### Requirements
-- **CMake ≥ 3.14**
-- **C++17-compatible compiler** (GCC, Clang, or MSVC)
+### **Requirements**
 
-### Build and Run
-```bash
+-   CMake ≥ 3.14
+-   C++17 compiler (GCC / Clang / MSVC)
+
+### **Build & Run (Linux/macOS)**
+
+``` bash
 mkdir build && cd build
 cmake ..
 make
 ./bin/earth_and_moon_orbits
 ```
 
-This generates `orbit_three_body.csv` — the orbital data used by the Python visualizations.
+This generates:
 
----
+    orbit_three_body.csv
+
+------------------------------------------------------------------------
 
 ## 📊 Visualization (Python)
 
-### Requirements
-```bash
-pip install matplotlib pandas
+Install dependencies:
+
+``` bash
+pip install -r requirements.txt
 ```
 
-### Static Plot
-```bash
-python plot.py
+Run standard plot:
+
+``` bash
+python 3Dplot.py
 ```
 
-### Two-dot Animation (visible Moon orbit)
-```bash
-python animate_two_dots.py
+Run exaggerated Moon orbit:
+
+``` bash
+python 3D_exaggerated_plot.py
 ```
 
----
+------------------------------------------------------------------------
 
-## 🎥 Saving Animations Automatically
+## 🎥 Saving Animations
 
-At the end of any animation script, add:
-
-```python
+``` python
 import shutil
 
-# --- Save animation automatically ---
 if shutil.which("ffmpeg"):
     ani.save("earth_moon_orbits.mp4", writer="ffmpeg", fps=30)
-    print("✅ Saved animation as earth_moon_orbits.mp4")
 elif shutil.which("magick"):
     ani.save("earth_moon_orbits.gif", writer="imagemagick", fps=30)
-    print("✅ Saved animation as earth_moon_orbits.gif")
-else:
-    print("⚠️ ffmpeg or ImageMagick not found — showing only in window.")
-
-plt.show()
 ```
 
-> 🧰 Install dependencies:
-> - **Ubuntu / Fedora:** `sudo apt install ffmpeg` or `sudo dnf install ffmpeg`
-> - **macOS:** `brew install ffmpeg`
-> - **Windows:** download FFmpeg from [ffmpeg.org](https://ffmpeg.org)
-
----
-
-## 🌌 Example Results
-
-| View | Description |
-|------|--------------|
-| 🌞 **Sun-centered view** | Earth and Moon orbiting the Sun |
-| 🌙 **Zoomed Earth-centered view** | Moon’s orbit around Earth |
-| 🎬 **Animated** | Smooth motion of Earth–Moon system around the Sun |
-
----
-
-### 🪐 Earth–Moon System (Sun-Centered View)
-![Earth and Moon orbiting the Sun](results/earth_moon_orbits.gif)
-
-### 🌍 Zoomed View (Earth–Moon close-up)
-![Earth and Moon zoomed animation](results/earth_moon_zoom.gif)
-
-The animation shows the Earth and Moon orbiting the Sun.  
-The Moon’s orbit is visually scaled for clarity, revealing the “wobble” as both bodies travel through space.
-
----
+------------------------------------------------------------------------
 
 ## 🧠 Physics Model
 
-- Newtonian gravitational interactions (no relativity)
-- Time step: **1 hour (Δt = 3600 s)**
-- Method: **Euler integration**
-- Bodies:
-  | Body | Mass (kg) | Notes |
-  |------|------------|-------|
-  | Sun | 1.9891×10³⁰ | fixed at origin |
-  | Earth | 5.972×10²⁴ | initial velocity ~30 km/s |
-  | Moon | 7.3477×10²² | offset 384,400 km; velocity 1 km/s relative to Earth |
+### Integrator
 
-Simulation duration: **1 year (8766 steps)**.
+Runge--Kutta 4 (RK4), fixed timestep
 
----
+### Timestep
 
-## 🧑‍💻 Author
+Δt = 3600 seconds (1 hour)
 
-**Sinan Demir**  
-A hobbyist exploring orbital mechanics, physics simulations, and visualization.
+### Bodies
 
-> “Somewhere, something incredible is waiting to be known.” — *Carl Sagan*
+  Body    Mass (kg)     Notes
+  ------- ------------- ---------------------------------
+  Sun     1.9891×10³⁰   Free-moving; barycentric wobble
+  Earth   5.972×10²⁴    1 AU; \~30 km/s
+  Moon    7.3477×10²²   384,400 km; 5.145° inclination
 
----
+------------------------------------------------------------------------
+
+## 🖼 Visualizations
+
+`results/orbit_3d.png`\
+`results/orbit_3d_exaggerated.png`
+
+------------------------------------------------------------------------
+
+## ✨ Future Improvements
+
+-   Symplectic integrators
+-   GPU acceleration
+-   Full solar system
+-   Adaptive timesteps
+
+------------------------------------------------------------------------
+
+## 👨‍💻 Author
+
+**Sinan Demir**\
+Computer Science student exploring numerical physics and scientific
+visualization.
+
+------------------------------------------------------------------------
 
 ## 🛰️ License
 
-**MIT License** — free to use, modify, and share.
+MIT License
