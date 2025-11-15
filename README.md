@@ -143,12 +143,13 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ## 👨‍💻 Author
 
-**Sinan Demir**\
-Computer Science student exploring numerical physics and scientific
-visualization.
+**Sinan Demir**  
+A hobbyist exploring orbital mechanics, physics simulations, and visualization.
+
+> “Somewhere, something incredible is waiting to be known.” — *Carl Sagan*
 
 ------------------------------------------------------------------------
 
 ## 🛰️ License
 
-MIT License (LICENSE)
+![MIT License](LICENSE)
