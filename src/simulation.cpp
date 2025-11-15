@@ -181,7 +181,7 @@ void rk4Step(std::vector<CelestialBody>& bodies, double dt) {
     }
 }
 
-vvoid runSimulation() {
+void runSimulation() {
     /********************
      * runSimulation
      * @brief: Runs the simulation for the Sun, Earth, and Moon; writes data to CSV (in 3D).
