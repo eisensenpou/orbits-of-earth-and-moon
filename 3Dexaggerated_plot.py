@@ -101,9 +101,13 @@ gif_path = results_dir / f"{path}.gif"
 try:
     if shutil.which("ffmpeg"):
         ani.save(mp4_path, writer="ffmpeg", fps=30)
-    else:
+        print(f"✅ Animation saved as {mp4_path}")
+    if shutil.which("magick") or shutil.which("convert"):
         ani.save(gif_path, writer="imagemagick", fps=30)
+        print(f"✅ Animation saved as {gif_path}")
+    else:
+        print("⚠️ ffmpeg or ImageMagick not found — showing animation only.")
 except Exception as e:
-    print(f"Error saving: {e}")
+    print(f"⚠️ Could not save animation: {e}")
 
 plt.show()
