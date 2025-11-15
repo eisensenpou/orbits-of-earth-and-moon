@@ -14,8 +14,10 @@
 struct StateDerivative {
     double dx;
     double dy;
+    double dz;
     double dvx;
     double dvy;
+    double dvz;
 };
 
 
@@ -31,14 +33,16 @@ void computeGravitationalForce(CelestialBody& a, CelestialBody& b) {
      ***********************/
     double dx = b.x - a.x;
     double dy = b.y - a.y;
-    double r2 = dx * dx + dy * dy;
+    double dz = b.z - a.z;
+    double r2 = dx * dx + dy * dy + dz * dz;
     double r = std::sqrt(r2);
 
     if (r < 1.0) return; // avoid division by zero if too close
 
-    double F = constants::G * b.mass / r2;
+    double F = constants::G * b.mass / r2; // acceleration force
     a.ax += F * (dx / r);
     a.ay += F * (dy / r);
+    a.az += F * (dz / r);
 }
 
 
@@ -56,8 +60,10 @@ void eulerStep(CelestialBody& body, double dt) {
      ***********************/
     body.vx += body.ax * dt;
     body.vy += body.ay * dt;
+    body.vz += body.az * dt;
     body.x  += body.vx * dt;
     body.y  += body.vy * dt;
+    body.z += body.vz * dt;  // we won't use euler's method but it's here for completeness
 }
 
 void resetAccelerations(std::vector<CelestialBody>& bodies) {
@@ -72,6 +78,7 @@ void resetAccelerations(std::vector<CelestialBody>& bodies) {
     for (auto& body : bodies) {
         body.ax = 0.0;
         body.ay = 0.0;
+        body.az = 0.0;
     }
 }
 
@@ -107,8 +114,10 @@ std::vector<StateDerivative> evaluateDerivatives(std::vector<CelestialBody>& bod
     for (size_t i = 0; i < bodies.size(); ++i) {
         derivatives[i].dx  = bodies[i].vx;
         derivatives[i].dy  = bodies[i].vy;
+        derivatives[i].dz = bodies[i].vz;
         derivatives[i].dvx = bodies[i].ax;
         derivatives[i].dvy = bodies[i].ay;
+        derivatives[i].dvz = bodies[i].az;
     }
     return derivatives;
 }
@@ -131,8 +140,10 @@ std::vector<CelestialBody> buildIntermediateState(
     for (size_t i = 0; i < bodies.size(); ++i) {
         next[i].x  += scale * derivatives[i].dx;
         next[i].y  += scale * derivatives[i].dy;
+        next[i].z += scale * derivatives[i].dz;
         next[i].vx += scale * derivatives[i].dvx;
         next[i].vy += scale * derivatives[i].dvy;
+        next[i].vz += scale * derivatives[i].dvz;
     }
     return next;
 }
@@ -163,34 +174,47 @@ void rk4Step(std::vector<CelestialBody>& bodies, double dt) {
     for (size_t i = 0; i < bodies.size(); ++i) {
         bodies[i].x  += sixth * (k1[i].dx  + 2.0 * k2[i].dx  + 2.0 * k3[i].dx  + k4[i].dx);
         bodies[i].y  += sixth * (k1[i].dy  + 2.0 * k2[i].dy  + 2.0 * k3[i].dy  + k4[i].dy);
+        bodies[i].z  += sixth * (k1[i].dz  + 2.0 * k2[i].dz  + 2.0 * k3[i].dz  + k4[i].dz);
         bodies[i].vx += sixth * (k1[i].dvx + 2.0 * k2[i].dvx + 2.0 * k3[i].dvx + k4[i].dvx);
         bodies[i].vy += sixth * (k1[i].dvy + 2.0 * k2[i].dvy + 2.0 * k3[i].dvy + k4[i].dvy);
+        bodies[i].vz += sixth * (k1[i].dvz + 2.0 * k2[i].dvz + 2.0 * k3[i].dvz + k4[i].dvz);
     }
 }
 
-void runSimulation() {
+vvoid runSimulation() {
     /********************
      * runSimulation
-     * @brief: Runs the simulation for the Sun, Earth, and Moon; writes data to CSV.
+     * @brief: Runs the simulation for the Sun, Earth, and Moon; writes data to CSV (in 3D).
      * @param none
      * @exception none
      * @return none
-     * @note: Adds 3-body simulation (Sun–Earth–Moon system).
+     * @note: Now supports full 3D positions and velocities.
      *********************/
 
-    // Define bodies
+    // Define bodies in 3D (z and vz now included)
     std::vector<CelestialBody> bodies = {
-        {"Sun",   constants::M_SUN, 0, 0, 0, 0, 0, 0},
-        {"Earth", 5.972e24, 1.47098074e11, 0, 0, 30300, 0, 0},
+        //      name    mass           x                    y   z   vx     vy   vz
+        {"Sun",   constants::M_SUN,     0,                   0,  0,   0,     0,   0},
+
+        // Earth starts in the ecliptic plane (z = 0)
+        {"Earth", 5.972e24,
+                  1.47098074e11,        0,  0,  // position
+                  30300,                0,  0}, // velocity
+
+        // Moon with slight inclination (5.145°)
         {
             "Moon",
             7.3477e22,
-            1.47098074e11 + 384400000, // position offset
+
+            // Position relative to Earth
+            1.47098074e11 + 384400000 * std::cos(constants::MOON_INCLINATION),
             0,
+            384400000 * std::sin(constants::MOON_INCLINATION),
+
+            // Velocity = Earth's + moon orbital speed, inclined
+            30300 + 1022 * std::cos(constants::MOON_INCLINATION),
             0,
-            30300 + 1022,              // velocity: Earth’s + orbital
-            0,
-            0
+            1022 * std::sin(constants::MOON_INCLINATION)
         }
     };
 
@@ -198,9 +222,12 @@ void runSimulation() {
     CelestialBody& earth = bodies[1];
     CelestialBody& moon  = bodies[2];
 
-    // Prepare output file
+    // Prepare output file (3D columns)
     std::ofstream file("orbit_three_body.csv");
-    file << "step,x_sun,y_sun,x_earth,y_earth,x_moon,y_moon\n";
+    file << "step,"
+         << "x_sun,y_sun,z_sun,"
+         << "x_earth,y_earth,z_earth,"
+         << "x_moon,y_moon,z_moon\n";
 
     const int steps = 8766; // one year (hourly)
     const double dt = constants::DT;
@@ -209,12 +236,12 @@ void runSimulation() {
         rk4Step(bodies, dt);
 
         // Write data for visualization
-        file << i << "," 
-             << sun.x << "," << sun.y << ","
-             << earth.x << "," << earth.y << ","
-             << moon.x << "," << moon.y << "\n";
+        file << i << ","
+             << sun.x   << "," << sun.y   << "," << sun.z   << ","
+             << earth.x << "," << earth.y << "," << earth.z << ","
+             << moon.x  << "," << moon.y  << "," << moon.z  << "\n";
     }
 
     file.close();
-    std::cout << "✅ Three-body simulation complete. Data saved to orbit_three_body.csv\n";
+    std::cout << "✅ 3D three-body simulation complete. Data saved to orbit_three_body.csv\n";
 }
