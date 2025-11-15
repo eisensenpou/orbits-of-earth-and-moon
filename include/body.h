@@ -14,9 +14,9 @@
 struct CelestialBody{
     std::string name;
     double mass;
-    double x,y;     // positions
-    double vx, vy;  // velocity components
-    double ax, ay;  // accelarator components
-};
+    double x,y,z;     // positions
+    double vx, vy, vz;  // velocity components
+    double ax, ay, az;  // accelarator components
+}; //end CelestialBody struct.
 
 #endif //BODY_H
