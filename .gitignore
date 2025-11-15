@@ -10,6 +10,7 @@
 !*.py
 !*.gif
 !src/**
+!include/
 !include/**
 !results/
 !results/**
