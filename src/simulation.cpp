@@ -222,6 +222,16 @@ void runSimulation() {
     CelestialBody& earth = bodies[1];
     CelestialBody& moon  = bodies[2];
 
+    // --- Correct the Earth–Moon barycenter in 3D ---
+    double mass_ratio = moon.mass / earth.mass;
+
+    // Move Earth slightly in -z to balance Moon's +z position
+    earth.z = -mass_ratio * moon.z;
+
+    // Give Earth a small -vz to balance Moon's +vz
+    earth.vz = -mass_ratio * moon.vz;
+
+
     // Prepare output file (3D columns)
     std::ofstream file("orbit_three_body.csv");
     file << "step,"
