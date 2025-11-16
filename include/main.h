@@ -8,7 +8,11 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-
+#include "body.h"
+#include "simulation.h"
+#include "utils.h"
+#include "ray.h"
+#include "vec3.h"
 
 
 #endif //MAIN_H

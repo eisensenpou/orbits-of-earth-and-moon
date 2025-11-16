@@ -6,9 +6,7 @@
  *****************/
 
 
-#include "body.h"
-#include "simulation.h"
-#include "utils.h"
+#include "main.h"
 
 int main() {
     runSimulation();
