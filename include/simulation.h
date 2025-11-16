@@ -1,4 +1,3 @@
-
 /****************
  * Author: Sinan Demir
  * File: simulation.h
