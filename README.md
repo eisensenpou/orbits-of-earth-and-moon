@@ -135,6 +135,10 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ![Earth and Moon orbiting the Sun](results/orbit_3d.gif)
 
+### Earth-Moon Orbit (Earth Centered)
+
+![Eart and moon](results/earth_moon_3d.gif)
+
 ### Exaggerated Moon Orbit
 
 ![Eart and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbit_3d_exaggerated.gif)
