@@ -52,13 +52,15 @@ visualized in **Python** using interactive 3D plots and animations.
     │   ├── utils.cpp
     │   ├── conservations.cpp
     │   └── eclipse.cpp
-    ├── 3Dexaggerated_plot.py
-    ├── 3Dplot_eaerth_moon.py
-    ├── 3Dplot.py
-    ├── 3Draytracking.py
+    ├── plotting_scripts/
+    │   ├── 3Dexaggerated_plot.py
+    │   ├── 3Dplot_eaerth_moon.py
+    │   ├── 3Dplot.py
+    │   └── 3Draytracking.py
     ├── orbit_three_body.csv
     ├── requirements.txt
     ├── LICENSE
+    ├── README.md -> this file
     └── CMakeLists.txt
 
 ------------------------------------------------------------------------
@@ -140,11 +142,13 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ------------------------------------------------------------------------
 
-## 🖼 Visualizations
+## Orbit Visualizations
 
 ### Actual Orbits
 
 ![Earth and Moon orbiting the Sun](results/orbits/orbit_3d.gif)
+
+The Moon (brown dot) is too small that it isn't visible. It orbits around the earth. 
 
 ### Earth-Moon Orbit (Earth Centered)
 
@@ -153,6 +157,23 @@ Runge--Kutta 4 (RK4), fixed timestep
 ### Exaggerated Moon Orbit
 
 ![Earth and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbits/orbit_3d_exaggerated.gif)
+
+------------------------------------------------------------------------
+
+## Energy-Momentum Conservations
+
+### Energy Conservation
+
+![Energy Conservation in Sun-Earth-Moon Simulation](results/conservation-graphs/energy_conservation.png)
+
+Total energy conserved.
+
+### Energy Drift
+
+![Relative Energy Drift (1E-15)](results/conservation-graphs/energy_drift.png)
+
+Since the relative energy drift is so small, we can say that the integration is very accurate.
+
 
 ------------------------------------------------------------------------
 
