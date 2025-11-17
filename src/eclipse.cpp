@@ -42,9 +42,9 @@ EclipseResult computeSolarEclipse(const vec3& S, const vec3& E, const vec3& M) {
     // --------------------------
     // Physical constants
     // --------------------------
-    const double R_SUN   = constants::R_SUN;
-    const double R_EARTH = constants::R_EARTH;
-    const double R_MOON  = constants::R_MOON;
+    const double R_SUN   = physics::constants::R_SUN;
+    const double R_EARTH = physics::constants::R_EARTH;
+    const double R_MOON  = physics::constants::R_MOON;
 
     // --------------------------
     // Umbra & Penumbra lengths

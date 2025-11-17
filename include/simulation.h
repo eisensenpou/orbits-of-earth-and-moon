@@ -10,6 +10,7 @@
 
 #include "body.h"
 #include "utils.h"
+#include "conservations.h"
 #include <cmath>
 #include <iostream>
 #include <fstream>  // for CSV output

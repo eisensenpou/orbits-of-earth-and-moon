@@ -22,7 +22,6 @@
 #include "vec3.h"
 #include "utils.h"
 #include <cmath>
-using namespace constants;
 
 /****************
  * struct EclipseResult

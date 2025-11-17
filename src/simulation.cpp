@@ -41,7 +41,7 @@ void computeGravitationalForce(CelestialBody& a, CelestialBody& b) {
 
     if (r < 1.0) return;
 
-    double F = constants::G * b.mass / r2;
+    double F = physics::constants::G * b.mass / r2;
     a.ax += F * (dx / r);
     a.ay += F * (dy / r);
     a.az += F * (dz / r);
@@ -162,12 +162,16 @@ void runSimulation() {
     /********************
      * runSimulation
      * @brief: Runs 3D Sun–Earth–Moon simulation and writes CSV.
+     * @param none
+     * @return none
+     * @exception none
+     * @note: Outputs to orbit_three_body.csv
      *********************/
 
     std::vector<CelestialBody> bodies = {
-        {"Sun",   constants::M_SUN, 0,0,0, 0,0,0},
-        {"Earth", constants::M_EARTH, 0,0,0, 0,0,0},
-        {"Moon",  constants::M_MOON, 0,0,0, 0,0,0}
+        {"Sun",   physics::constants::M_SUN, 0,0,0, 0,0,0, 0,0,0},
+        {"Earth", physics::constants::M_EARTH, 0,0,0, 0,0,0, 0,0,0},
+        {"Moon",  physics::constants::M_MOON, 0,0,0, 0,0,0, 0,0,0}
     };
 
     CelestialBody& sun   = bodies[0];
@@ -178,11 +182,10 @@ void runSimulation() {
     // 1. Orbital parameters
     // ============================
 
-    const double r_earth = 1.47098074e11; // perihelion
-    const double r_moon  = 384400000.0;
-
-    const double v_earth = std::sqrt(constants::G * constants::M_SUN / r_earth);
-    const double v_moon  = std::sqrt(constants::G * (earth.mass + moon.mass) / r_moon);
+    const double r_earth = physics::constants::EARTH_PERIHELION;
+    const double r_moon  = physics::constants::MOON_ORBIT_RADIUS;
+    const double v_earth = std::sqrt(physics::constants::G * physics::constants::M_SUN / r_earth);
+    const double v_moon  = std::sqrt(physics::constants::G * (earth.mass + moon.mass) / r_moon);
 
     // ============================
     // 2. Initial positions
@@ -202,21 +205,29 @@ void runSimulation() {
     // 4. Moon orbital inclination
     // ============================
     {
-        double inc = constants::MOON_INCLINATION;
-        double c = std::cos(inc);
-        double s = std::sin(inc);
+    double inc = physics::constants::MOON_INCLINATION;
+    double c = std::cos(inc);
+    double s = std::sin(inc);
 
-        double ry = moon.y - earth.y;
-        double rz = moon.z - earth.z;
+    // --- POSITION ROTATION ---
+    double ry = moon.y - earth.y;
+    double rz = moon.z - earth.z;
 
-        moon.y = earth.y + ry*c;
-        moon.z = earth.z + ry*s;
+    double new_ry = ry * c - rz * s;
+    double new_rz = ry * s + rz * c;
 
-        double rvy = moon.vy - earth.vy;
-        double rvz = moon.vz - earth.vz;
+    moon.y = earth.y + new_ry;
+    moon.z = earth.z + new_rz;
 
-        moon.vy = earth.vy + rvy*c;
-        moon.vz = earth.vz + rvy*s;
+    // --- VELOCITY ROTATION ---
+    double rvy = moon.vy - earth.vy;
+    double rvz = moon.vz - earth.vz;
+
+    double new_rvy = rvy * c - rvz * s;
+    double new_rvz = rvy * s + rvz * c;
+
+    moon.vy = earth.vy + new_rvy;
+    moon.vz = earth.vz + new_rvz;
     }
 
     // ============================
@@ -238,6 +249,13 @@ void runSimulation() {
     }
 
     // ============================
+    // 6. Conservations check
+    // ============================
+    physics::Conservations C0 = physics::compute(sun, earth, moon);
+    double E0 = C0.total_energy;
+    double L0 = std::sqrt(C0.L[0]*C0.L[0] + C0.L[1]*C0.L[1] + C0.L[2]*C0.L[2]);
+
+    // ============================
     // 6. CSV output
     // ============================
     std::ofstream file("orbit_three_body.csv");
@@ -246,10 +264,13 @@ void runSimulation() {
          << "x_earth,y_earth,z_earth,"
          << "x_moon,y_moon,z_moon,"
          << "shadow_x,shadow_y,shadow_z,"
-         << "umbra_r,penumbra_r,eclipse_type\n";
+         << "umbra_r,penumbra_r,eclipse_type,"
+         << "E_total,KE,PE,"
+         << "Lx,Ly,Lz,Lmag,"
+         << "dE_rel,dL_rel\n";
 
     const int steps = 8766;
-    const double dt = constants::DT;
+    const double dt = physics::constants::DT;
 
     // ============================
     // 7. Main loop
@@ -257,6 +278,17 @@ void runSimulation() {
     for (int i = 0; i < steps; ++i) {
         rk4Step(bodies, dt);
 
+        // -------- Conservation diagnostics --------
+        physics::Conservations C = physics::compute(sun, earth, moon);
+        double Lmag = std::sqrt(
+            C.L[0]*C.L[0] +
+            C.L[1]*C.L[1] +
+            C.L[2]*C.L[2]
+        );
+        double dE = (C.total_energy - E0) / std::abs(E0);
+        double dL = (Lmag - L0) / L0;
+
+        // -------- Eclipse computation --------
         vec3 S(sun.x,   sun.y,   sun.z);
         vec3 E(earth.x, earth.y, earth.z);
         vec3 M(moon.x,  moon.y,  moon.z);
@@ -264,16 +296,26 @@ void runSimulation() {
         EclipseResult eclipse = computeSolarEclipse(S, E, M);
 
         file << i << ","
-             << sun.x   << "," << sun.y   << "," << sun.z   << ","
-             << earth.x << "," << earth.y << "," << earth.z << ","
-             << moon.x  << "," << moon.y  << "," << moon.z  << ","
-             << eclipse.shadowCenter.x() << ","
-             << eclipse.shadowCenter.y() << ","
-             << eclipse.shadowCenter.z() << ","
-             << eclipse.umbraRadius      << ","
-             << eclipse.penumbraRadius   << ","
-             << eclipse.eclipseType
-             << "\n";
+            << sun.x   << "," << sun.y   << "," << sun.z   << ","
+            << earth.x << "," << earth.y << "," << earth.z << ","
+            << moon.x  << "," << moon.y  << "," << moon.z  << ","
+            << eclipse.shadowCenter.x() << ","
+            << eclipse.shadowCenter.y() << ","
+            << eclipse.shadowCenter.z() << ","
+            << eclipse.umbraRadius      << ","
+            << eclipse.penumbraRadius   << ","
+            << eclipse.eclipseType      << ","
+            // ---- Conservation values ----
+            << C.total_energy     << ","
+            << C.kinetic_energy   << ","
+            << C.potential_energy << ","
+
+            << C.L[0] << "," << C.L[1] << "," << C.L[2] << ","
+            << Lmag   << ","
+            << dE     << ","
+            << dL
+
+            << "\n";
     }
 
     file.close();
