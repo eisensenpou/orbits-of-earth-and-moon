@@ -21,6 +21,8 @@ visualized in **Python** using interactive 3D plots and animations.
 -   Accurate **Earth orbital motion**
 -   Moon orbit with **5.145° inclination**
 -   One-year simulation; **hourly time step**
+-   **Angular-Linear** momentum conversation
+-   **Total energy conservation**
 
 ### 📊 **Visualization (Python)**
 
@@ -40,14 +42,23 @@ visualized in **Python** using interactive 3D plots and animations.
     │   ├── main.h
     │   ├── simulation.h
     │   ├── utils.h
+    │   ├── eclipse.h
+    │   ├── vec3.h
+    │   ├── ray.h       
+    │   └── conservations.h
     ├── src/
     │   ├── main.cpp
     │   ├── simulation.cpp
-    │   └── utils.cpp
+    │   ├── utils.cpp
+    │   ├── conservations.cpp
+    │   └── eclipse.cpp
+    ├── 3Dexaggerated_plot.py
+    ├── 3Dplot_eaerth_moon.py
     ├── 3Dplot.py
-    ├── 3D_exaggerated_plot.py
+    ├── 3Draytracking.py
     ├── orbit_three_body.csv
     ├── requirements.txt
+    ├── LICENSE
     └── CMakeLists.txt
 
 ------------------------------------------------------------------------
@@ -133,15 +144,15 @@ Runge--Kutta 4 (RK4), fixed timestep
 
 ### Actual Orbits
 
-![Earth and Moon orbiting the Sun](results/orbit_3d.gif)
+![Earth and Moon orbiting the Sun](results/orbits/orbit_3d.gif)
 
 ### Earth-Moon Orbit (Earth Centered)
 
-![Eart and moon](results/earth_moon_3d.gif)
+![Earth and moon](results/orbits/earth_moon_3d.gif)
 
 ### Exaggerated Moon Orbit
 
-![Eart and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbit_3d_exaggerated.gif)
+![Earth and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbits/orbit_3d_exaggerated.gif)
 
 ------------------------------------------------------------------------
 

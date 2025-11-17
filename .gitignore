@@ -15,4 +15,6 @@
 !include/**
 !results/
 !results/**
+!plotting_scripts
+!plotting_scripts/**/
 !CMakeLists.txt
