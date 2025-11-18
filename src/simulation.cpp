@@ -267,7 +267,8 @@ void runSimulation() {
          << "umbra_r,penumbra_r,eclipse_type,"
          << "E_total,KE,PE,"
          << "Lx,Ly,Lz,Lmag,"
-         << "dE_rel,dL_rel\n";
+         << "Px,Py,Pz,Pmag,"
+         << "dE_rel,dL_rel,dP_rel\n";
 
     const int steps = 8766;
     const double dt = physics::constants::DT;
@@ -288,6 +289,21 @@ void runSimulation() {
         double dE = (C.total_energy - E0) / std::abs(E0);
         double dL = (Lmag - L0) / L0;
 
+        // ---- Baseline Linear Momentum ----
+        double P0 = std::sqrt(
+            C0.P[0] * C0.P[0] +
+            C0.P[1] * C0.P[1] +
+            C0.P[2] * C0.P[2]
+        );
+
+        double Pmag = std::sqrt(
+            C.P[0] * C.P[0] +
+            C.P[1] * C.P[1] +
+            C.P[2] * C.P[2]
+        );
+        // Relative linear momentum drift
+        double dP = (Pmag - P0) / (P0 == 0 ? 1 : P0);
+
         // -------- Eclipse computation --------
         vec3 S(sun.x,   sun.y,   sun.z);
         vec3 E(earth.x, earth.y, earth.z);
@@ -296,26 +312,30 @@ void runSimulation() {
         EclipseResult eclipse = computeSolarEclipse(S, E, M);
 
         file << i << ","
-            << sun.x   << "," << sun.y   << "," << sun.z   << ","
-            << earth.x << "," << earth.y << "," << earth.z << ","
-            << moon.x  << "," << moon.y  << "," << moon.z  << ","
-            << eclipse.shadowCenter.x() << ","
-            << eclipse.shadowCenter.y() << ","
-            << eclipse.shadowCenter.z() << ","
-            << eclipse.umbraRadius      << ","
-            << eclipse.penumbraRadius   << ","
-            << eclipse.eclipseType      << ","
-            // ---- Conservation values ----
-            << C.total_energy     << ","
-            << C.kinetic_energy   << ","
-            << C.potential_energy << ","
-
-            << C.L[0] << "," << C.L[1] << "," << C.L[2] << ","
-            << Lmag   << ","
-            << dE     << ","
-            << dL
-
-            << "\n";
+             << sun.x   << "," << sun.y   << "," << sun.z   << ","
+             << earth.x << "," << earth.y << "," << earth.z << ","
+             << moon.x  << "," << moon.y  << "," << moon.z  << ","
+             << eclipse.shadowCenter.x() << ","
+             << eclipse.shadowCenter.y() << ","
+             << eclipse.shadowCenter.z() << ","
+             << eclipse.umbraRadius      << ","
+             << eclipse.penumbraRadius   << ","
+             << eclipse.eclipseType      << ","
+             // Energy-related
+             << C.total_energy     << ","
+             << C.kinetic_energy   << ","
+             << C.potential_energy << ","
+             // Angular momentum
+             << C.L[0] << "," << C.L[1] << "," << C.L[2] << ","
+             << Lmag   << ","
+             // Linear momentum
+             << C.P[0] << "," << C.P[1] << "," << C.P[2] << ","
+             << Pmag   << ","
+             // Drifts
+             << dE     << ","
+             << dL     << ","
+             << dP
+             << "\n";
     }
 
     file.close();
