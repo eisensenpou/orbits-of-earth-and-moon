@@ -164,187 +164,91 @@ void rk4Step(std::vector<CelestialBody>& bodies, double dt) {
 
 /********************
  * runSimulation
- * @brief: Runs 3D Sun–Earth–Moon simulation and writes CSV.
- * @param none
+ * @brief: Generic N-body simulation runner using RK4 integrator.
+ * @param bodies     - vector of CelestialBody objects (from JSON)
+ * @param steps      - number of steps to simulate
+ * @param dt         - timestep in seconds
+ * @param outputPath - CSV output file path
  * @return none
- * @exception none
- * @note: Outputs to orbit_three_body.csv
  *********************/
-void runSimulation() {
-
-    std::vector<CelestialBody> bodies = {
-        {"Sun",   physics::constants::M_SUN,   0,0,0, 0,0,0, 0,0,0},
-        {"Earth", physics::constants::M_EARTH, 0,0,0, 0,0,0, 0,0,0},
-        {"Moon",  physics::constants::M_MOON,  0,0,0, 0,0,0, 0,0,0}
-    };
-
-    CelestialBody& sun   = bodies[0];
-    CelestialBody& earth = bodies[1];
-    CelestialBody& moon  = bodies[2];
-
-    // ============================
-    // 1. Orbital parameters
-    // ============================
-    const double r_earth = physics::constants::EARTH_PERIHELION;
-    const double r_moon  = physics::constants::MOON_ORBIT_RADIUS;
-    const double v_earth = std::sqrt(physics::constants::G * physics::constants::M_SUN / r_earth);
-    const double v_moon  = std::sqrt(physics::constants::G * (earth.mass + moon.mass) / r_moon);
-
-    // ============================
-    // 2. Initial positions
-    // ============================
-    earth.position = vec3(r_earth, 0.0, 0.0);
-    moon.position  = vec3(r_earth, r_moon, 0.0);
-
-    // ============================
-    // 3. Initial velocities
-    // ============================
-    earth.velocity = vec3(0.0, v_earth, 0.0);
-    moon.velocity  = vec3(-v_moon, v_earth, 0.0);
-
-    // ============================
-    // 4. Moon orbital inclination
-    // ============================
-    {
-        double inc = physics::constants::MOON_INCLINATION;
-        double c   = std::cos(inc);
-        double s   = std::sin(inc);
-
-        // --- POSITION ROTATION (about x-axis) ---
-        double ry = moon.position.y() - earth.position.y();
-        double rz = moon.position.z() - earth.position.z();
-
-        double new_ry = ry * c - rz * s;
-        double new_rz = ry * s + rz * c;
-
-        moon.position = vec3(
-            earth.position.x(),
-            earth.position.y() + new_ry,
-            earth.position.z() + new_rz
-        );
-
-        // --- VELOCITY ROTATION (about x-axis) ---
-        double rvy = moon.velocity.y() - earth.velocity.y();
-        double rvz = moon.velocity.z() - earth.velocity.z();
-
-        double new_rvy = rvy * c - rvz * s;
-        double new_rvz = rvy * s + rvz * c;
-
-        moon.velocity = vec3(
-            moon.velocity.x(),                       // keep x-component
-            earth.velocity.y() + new_rvy,
-            earth.velocity.z() + new_rvz
-        );
+void runSimulation(std::vector<CelestialBody>& bodies,
+                   int steps,
+                   double dt,
+                   const std::string& outputPath)
+{
+    if (bodies.empty()) {
+        std::cerr << "❌ No bodies to simulate.\n";
+        return;
     }
 
     // ============================
-    // 5. Barycenter correction
-    // ============================
-    {
-        // total linear momentum P = Σ m v
-        vec3 P = sun.mass   * sun.velocity
-               + earth.mass * earth.velocity
-               + moon.mass  * moon.velocity;
-
-        // Shift Sun velocity so that total momentum is zero (barycentric frame)
-        sun.velocity = sun.velocity - (P / sun.mass);
-    }
-
-    // tiny z correction
-    {
-        double r = moon.mass / earth.mass;
-
-        earth.position = vec3(
-            earth.position.x(),
-            earth.position.y(),
-            -r * moon.position.z()
-        );
-
-        earth.velocity = vec3(
-            earth.velocity.x(),
-            earth.velocity.y(),
-            -r * moon.velocity.z()
-        );
-    }
-
-    // ============================
-    // 6. Conservations check
+    // Initial conservation checks
     // ============================
     physics::Conservations C0 = physics::compute(bodies);
     double E0 = C0.total_energy;
 
-    const double L0 = std::sqrt(
+    double L0 = std::sqrt(
         C0.L[0]*C0.L[0] +
         C0.L[1]*C0.L[1] +
         C0.L[2]*C0.L[2]
     );
 
-    const double P0mag = std::sqrt(
+    double P0mag = std::sqrt(
         C0.P[0]*C0.P[0] +
         C0.P[1]*C0.P[1] +
         C0.P[2]*C0.P[2]
     );
 
     // ============================
-    // 7. CSV output (N-body generic)
+    // Open CSV file
     // ============================
-    std::ofstream file("orbit_three_body.csv");
+    std::ofstream file(outputPath);
+
+    if (!file) {
+        std::cerr << "❌ Could not open output file: " << outputPath << "\n";
+        return;
+    }
 
     /**********************************************
      * CSV HEADER (Generic for any N bodies)
      **********************************************/
     file << "step,";
-    for (std::size_t i = 0; i < bodies.size(); ++i) {
-        file << "x_" << bodies[i].name << ","
-             << "y_" << bodies[i].name << ","
-             << "z_" << bodies[i].name << ",";
+    for (const auto& b : bodies) {
+        file << "x_" << b.name << ","
+             << "y_" << b.name << ","
+             << "z_" << b.name << ",";
     }
 
-    file << "shadow_x,shadow_y,shadow_z,"
-         << "umbra_r,penumbra_r,eclipse_type,"
-         << "E_total,KE,PE,"
+    file << "E_total,KE,PE,"
          << "Lx,Ly,Lz,Lmag,"
          << "Px,Py,Pz,Pmag,"
          << "dE_rel,dL_rel,dP_rel\n";
 
-    const int    steps = 8766;
-    const double dt    = physics::constants::DT;
-
     // ============================
-    // 8. Main integration loop
+    // Main Integration Loop
     // ============================
     for (int i = 0; i < steps; ++i) {
+
+        // --- RK4 integration step ---
         rk4Step(bodies, dt);
 
-        // --- Conservation diagnostics (now N-body aware) ---
+        // --- Compute updated conservation values ---
         physics::Conservations C = physics::compute(bodies);
 
-        double Lmag = std::sqrt(
-            C.L[0]*C.L[0] +
-            C.L[1]*C.L[1] +
-            C.L[2]*C.L[2]
-        );
+        double Lmag = std::sqrt(C.L[0]*C.L[0] +
+                                C.L[1]*C.L[1] +
+                                C.L[2]*C.L[2]);
+
+        double Pmag = std::sqrt(C.P[0]*C.P[0] +
+                                C.P[1]*C.P[1] +
+                                C.P[2]*C.P[2]);
 
         double dE = (C.total_energy - E0) / std::abs(E0);
-        double dL = (Lmag - L0)         / L0;
-
-        double Pmag = std::sqrt(
-            C.P[0]*C.P[0] +
-            C.P[1]*C.P[1] +
-            C.P[2]*C.P[2]
-        );
-
+        double dL = (Lmag - L0) / L0;
         double dP = (Pmag - P0mag) / (P0mag == 0 ? 1.0 : P0mag);
 
-        // -------- Eclipse computation --------
-        vec3 S = sun.position;
-        vec3 E = earth.position;
-        vec3 M = moon.position;
-
-        EclipseResult eclipse = computeSolarEclipse(S, E, M);
-
         // ============================
-        // CSV ROW (Generic N-body)
+        // CSV ROW
         // ============================
         file << i << ",";
 
@@ -354,15 +258,9 @@ void runSimulation() {
                  << b.position.z() << ",";
         }
 
-        file << eclipse.shadowCenter.x() << ","
-             << eclipse.shadowCenter.y() << ","
-             << eclipse.shadowCenter.z() << ","
-             << eclipse.umbraRadius      << ","
-             << eclipse.penumbraRadius   << ","
-             << eclipse.eclipseType      << ","
-             << C.total_energy           << ","
-             << C.kinetic_energy         << ","
-             << C.potential_energy       << ","
+        file << C.total_energy << ","
+             << C.kinetic_energy << ","
+             << C.potential_energy << ","
              << C.L[0] << "," << C.L[1] << "," << C.L[2] << ","
              << Lmag << ","
              << C.P[0] << "," << C.P[1] << "," << C.P[2] << ","
@@ -371,5 +269,6 @@ void runSimulation() {
     }
 
     file.close();
-    std::cout << "✅ 3D simulation + eclipse data written to orbit_three_body.csv\n";
+    std::cout << "✅ Simulation complete: " << outputPath << "\n";
 }
+

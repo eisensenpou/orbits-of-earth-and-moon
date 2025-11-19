@@ -13,6 +13,10 @@
 #include "utils.h"
 #include "ray.h"
 #include "vec3.h"
-
+#include "cli.h"
+#include "json_loader.h"
+#include <iostream>
+#include <string>
+#include <filesystem>
 
 #endif //MAIN_H
