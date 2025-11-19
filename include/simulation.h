@@ -11,6 +11,8 @@
 #include "body.h"
 #include "utils.h"
 #include "conservations.h"
+#include "eclipse.h"
+#include "vec3.h"
 #include <cmath>
 #include <iostream>
 #include <fstream>  // for CSV output

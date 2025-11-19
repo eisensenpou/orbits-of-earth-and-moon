@@ -11,56 +11,58 @@ namespace physics {
 
 // RECALL constants::G = 6.67430e-11 (m^3 kg^-1 s^-2)
 
-
-// ---- helper: Euclidean distance ---- //
+// ---- helper: Euclidean distance (vec3) ---- //
 static inline double distance(const CelestialBody& a, const CelestialBody& b){
-/*****************
- * Distance between two bodies
- * @param: a - first body
- * @param: b - second body
- * @return: Euclidean distance between a and b
- * @exception: none
- * @note: uses std::sqrt from <cmath>
- *****************/
-    double dx = a.x - b.x;
-    double dy = a.y - b.y;
-    double dz = a.z - b.z;
-    return std::sqrt(dx*dx + dy*dy + dz*dz);
+    /*****************
+     * Distance between two bodies
+     * @param: a - first body
+     * @param: b - second body
+     * @return: Euclidean distance |a.position - b.position|
+     * @exception: none
+     * @note: Uses vec3::length() method
+     *****************/
+    return (a.position - b.position).length();
 }
 
 // ---- helper: r × (m v) ---- //
 static inline std::array<double,3> angular_term(const CelestialBody& b){
-/*****************
- * Computes angular momentum term r × (m v) for a body
- * @param: b - celestial body
- * @return: 3D vector of angular momentum contribution
- * @exception: none
- * @note: uses std::array from <array>
- *****************/
+    /*****************
+     * Computes angular momentum term r × (m v) for a body
+     * @param: b - celestial body
+     * @return: 3D vector of angular momentum contribution
+     * @exception: none
+     * @note: uses std::array from <array> and vec3 cross product
+     *****************/
+    // m v
+    vec3 p = b.mass * b.velocity;
+    // r × (m v)
+    vec3 L = cross(b.position, p);
+
     return {
-        b.mass * (b.y * b.vz - b.z * b.vy),
-        b.mass * (b.z * b.vx - b.x * b.vz),
-        b.mass * (b.x * b.vy - b.y * b.vx)
+        L.x(),
+        L.y(),
+        L.z()
     };
 }
 
-Conservations compute(const CelestialBody& sun,
-                      const CelestialBody& earth,
-                      const CelestialBody& moon){
 /*****************
  * Computes conservation diagnostics for the 3-body system
- * @param: sun - Sun body
+ * @param: sun   - Sun body
  * @param: earth - Earth body
- * @param: moon - Moon body
+ * @param: moon  - Moon body
  * @return: Conservations struct with energy and momentum values
  * @exception: none
  * @note: uses helper functions distance() and angular_term()
- * ****************/
+ *****************/
+Conservations compute(const CelestialBody& sun,
+                      const CelestialBody& earth,
+                      const CelestialBody& moon){
+
     Conservations C;
 
     // ---- Kinetic Energy ---- //
     auto v2 = [](const CelestialBody& b) {
-        return b.vx*b.vx + b.vy*b.vy + b.vz*b.vz;
+        return b.velocity.length_squared();
     };
 
     C.kinetic_energy =
@@ -74,19 +76,27 @@ Conservations compute(const CelestialBody& sun,
     double r_em = distance(earth, moon);
 
     C.potential_energy =
-    -constants::G * (
-        sun.mass   * earth.mass / r_se +
-        sun.mass   * moon.mass  / r_sm +
-        earth.mass * moon.mass  / r_em
-    );
+        -constants::G * (
+            sun.mass   * earth.mass / r_se +
+            sun.mass   * moon.mass  / r_sm +
+            earth.mass * moon.mass  / r_em
+        );
 
     // ---- Total Energy ---- //
     C.total_energy = C.kinetic_energy + C.potential_energy;
 
     // ---- Linear Momentum ---- //
-    C.P[0] = sun.mass * sun.vx + earth.mass * earth.vx + moon.mass * moon.vx;
-    C.P[1] = sun.mass * sun.vy + earth.mass * earth.vy + moon.mass * moon.vy;
-    C.P[2] = sun.mass * sun.vz + earth.mass * earth.vz + moon.mass * moon.vz;
+    // P = Σ m v
+    {
+        vec3 P =
+              sun.mass   * sun.velocity
+            + earth.mass * earth.velocity
+            + moon.mass  * moon.velocity;
+
+        C.P[0] = P.x();
+        C.P[1] = P.y();
+        C.P[2] = P.z();
+    }
 
     // ---- Angular Momentum ---- //
     auto Ls = angular_term(sun);
@@ -97,6 +107,65 @@ Conservations compute(const CelestialBody& sun,
     C.L[1] = Ls[1] + Le[1] + Lm[1];
     C.L[2] = Ls[2] + Le[2] + Lm[2];
 
+    return C;
+}
+
+/***********************
+ * compute (N-body overload)
+ * @brief: Computes conservation laws for an arbitrary N-body system.
+ *
+ *  - Kinetic energy  : sum_i (1/2 m_i |v_i|^2)
+ *  - Potential energy: - sum_{i<j} G m_i m_j / r_ij
+ *  - Linear momentum : sum_i m_i v_i
+ *  - Angular momentum: sum_i r_i × (m_i v_i)
+ ***********************/
+Conservations compute(const std::vector<CelestialBody>& bodies) {
+    Conservations C;
+
+    if (bodies.empty()) {
+        return C;
+    }
+
+    // ---- Kinetic energy and linear momentum ---- //
+    for (const auto& b : bodies) {
+        const double v2 = b.velocity.length_squared();
+
+        // 1/2 m v^2
+        C.kinetic_energy += 0.5 * b.mass * v2;
+
+        // p = m v
+        vec3 p = b.mass * b.velocity;
+        C.P[0] += p.x();
+        C.P[1] += p.y();
+        C.P[2] += p.z();
+    }
+
+    // ---- Potential energy (pairwise: i < j) ---- //
+    for (std::size_t i = 0; i < bodies.size(); ++i) {
+        for (std::size_t j = i + 1; j < bodies.size(); ++j) {
+            const auto& a = bodies[i];
+            const auto& b = bodies[j];
+
+            double r = distance(a, b);
+            if (r == 0.0) continue; // avoid singularity
+
+            C.potential_energy -= constants::G * a.mass * b.mass / r;
+        }
+    }
+
+    // ---- Angular momentum ---- //
+    for (const auto& b : bodies) {
+        // r × (m v)
+        vec3 p  = b.mass * b.velocity;
+        vec3 Lv = cross(b.position, p);
+
+        C.L[0] += Lv.x();
+        C.L[1] += Lv.y();
+        C.L[2] += Lv.z();
+    }
+
+    // ---- Total energy ---- //
+    C.total_energy = C.kinetic_energy + C.potential_energy;
     return C;
 }
 
