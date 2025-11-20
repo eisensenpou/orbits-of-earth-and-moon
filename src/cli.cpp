@@ -1,12 +1,11 @@
 /****************
  * Author: Sinan Demir
  * File: cli.cpp
- * Date: 11/18/2025
- * Purpose: Implementation file for CLI module.
+ * Date: 11/19/2025
+ * Purpose: Implementation file for CLI parser.
  *****************/
 
 #include "cli.h"
-
 
 CLIOptions parseCLI(int argc, char** argv) {
 /**********************
@@ -16,7 +15,6 @@ CLIOptions parseCLI(int argc, char** argv) {
  * @param: argv - argument vector
  * @return: CLIOptions struct with parsed values
  * @exception: exits on invalid usage
- * @note: Supports commands: run, list, info
  **********************/
     CLIOptions opt;
 
@@ -25,11 +23,13 @@ CLIOptions parseCLI(int argc, char** argv) {
         exit(1);
     }
 
+    // First argument is the command
     opt.command = argv[1];
 
     for (int i = 2; i < argc; ++i) {
         std::string a = argv[i];
 
+        // ----- Simulation Options -----
         if (a == "--system" && i + 1 < argc) {
             opt.systemFile = argv[++i];
         }
@@ -42,6 +42,25 @@ CLIOptions parseCLI(int argc, char** argv) {
         else if (a == "--output" && i + 1 < argc) {
             opt.output = argv[++i];
         }
+
+        // ----- FETCH Options -----
+        else if (a == "--body" && i + 1 < argc) {
+            opt.fetchBody = argv[++i];
+        }
+        else if (a == "--center" && i + 1 < argc) {
+            opt.fetchCenter = argv[++i];
+        }
+        else if (a == "--start" && i + 1 < argc) {
+            opt.fetchStart = argv[++i];
+        }
+        else if (a == "--stop" && i + 1 < argc) {
+            opt.fetchStop = argv[++i];
+        }
+        else if (a == "--step" && i + 1 < argc) {
+            opt.fetchStep = argv[++i];
+        }
+
+        // ----- Unknown Option -----
         else {
             std::cerr << "Unknown option: " << a << "\n";
             exit(1);
@@ -49,4 +68,4 @@ CLIOptions parseCLI(int argc, char** argv) {
     }
 
     return opt;
-}  // end parseCLI
+}
