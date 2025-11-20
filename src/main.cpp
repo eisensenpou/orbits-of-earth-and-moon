@@ -1,16 +1,24 @@
 /********************
  * Author: Sinan Demir
  * File: main.cpp
- * Date: 11/18/2025
+ * Date: 11/19/2025
  * Purpose:
  *    Entry point for orbit-sim CLI application.
  *    Supports:
  *      - Running N-body simulations from JSON system files
  *      - Printing basic system info
  *      - Listing available system definitions
+ *      - Fetching raw ephemeris from NASA HORIZONS
  *********************/
 
-#include "main.h"
+#include <iostream>
+#include <string>
+#include <filesystem>
+
+#include "cli.h"
+#include "json_loader.h"
+#include "simulation.h"
+#include "horizons.h"
 
 /********************
  * printSystemInfo
@@ -26,8 +34,7 @@ void printSystemInfo(const std::string& path) {
             std::cout << " - " << b.name
                       << " | mass=" << b.mass
                       << " | pos=(" << b.position << ")"
-                      << " | vel=(" << b.velocity << ")"
-                      << "\n";
+                      << " | vel=(" << b.velocity << ")\n";
         }
     }
     catch (const std::exception& e) {
@@ -62,11 +69,13 @@ int main(int argc, char** argv) {
 
     CLIOptions opt = parseCLI(argc, argv);
 
+    // ----- LIST -----
     if (opt.command == "list") {
         listSystems();
         return 0;
     }
 
+    // ----- INFO -----
     if (opt.command == "info") {
         if (opt.systemFile.empty()) {
             std::cerr << "❌ Must specify --system <file.json>\n";
@@ -76,6 +85,42 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // ----- FETCH (NASA HORIZONS) -----
+    if (opt.command == "fetch") {
+
+        if (opt.fetchBody.empty()) {
+            std::cerr << "❌ Must specify --body <ID or NAME>\n";
+            return 1;
+        }
+        if (opt.fetchStart.empty() || opt.fetchStop.empty()) {
+            std::cerr << "❌ Must specify --start <date> and --stop <date>\n";
+            return 1;
+        }
+        if (opt.output.empty()) {
+            std::cerr << "❌ Must specify --output <file>\n";
+            return 1;
+        }
+
+        HorizonsFetchOptions hopt;
+        hopt.command    = opt.fetchBody;
+        hopt.center     = opt.fetchCenter.empty() ? "@0"      : opt.fetchCenter;
+        hopt.start_time = opt.fetchStart;
+        hopt.stop_time  = opt.fetchStop;
+        hopt.step_size  = opt.fetchStep.empty()   ? "1 d"    : opt.fetchStep;
+
+        std::cout << "Fetching NASA JPL Horizons ephemeris:\n"
+                  << " - Body:   " << hopt.command    << "\n"
+                  << " - Center: " << hopt.center     << "\n"
+                  << " - Start:  " << hopt.start_time << "\n"
+                  << " - Stop:   " << hopt.stop_time  << "\n"
+                  << " - Step:   " << hopt.step_size  << "\n"
+                  << " - Output: " << opt.output      << "\n";
+
+        bool ok = fetchHorizonsEphemeris(hopt, opt.output);
+        return ok ? 0 : 1;
+    }
+
+    // ----- RUN SIMULATION -----
     if (opt.command == "run") {
         if (opt.systemFile.empty()) {
             std::cerr << "❌ Must specify --system <file.json>\n";
@@ -96,7 +141,6 @@ int main(int argc, char** argv) {
                       << " - dt:     " << dt << " seconds\n"
                       << " - Output: " << opt.output << "\n";
 
-            // Run simulation
             runSimulation(bodies, steps, dt, opt.output);
         }
         catch (const std::exception& e) {
@@ -107,12 +151,13 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // Command not recognized
+    // ----- UNKNOWN COMMAND -----
     std::cerr << "❌ Unknown command: " << opt.command << "\n";
     std::cerr << "Valid commands are:\n"
               << "  orbit-sim list\n"
-              << "  orbit-sim info --system <file.json>\n"
-              << "  orbit-sim run  --system <file.json> --steps N --dt T\n";
+              << "  orbit-sim info  --system <file.json>\n"
+              << "  orbit-sim run   --system <file.json> --steps N --dt T\n"
+              << "  orbit-sim fetch --body <ID> --start <date> --stop <date> --output <file>\n";
 
     return 1;
 }
