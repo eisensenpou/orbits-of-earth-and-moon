@@ -14,12 +14,16 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Gather all source files automatically
 file(GLOB SRC_FILES src/*.cpp)
 
-# Create executable
-add_executable(earth_and_moon_orbits ${SRC_FILES})
+# Create executable FIRST (so targets exist)
+add_executable(orbit-sim ${SRC_FILES})
 
 # Enable compiler warnings (good for debugging)
 if (MSVC)
-    target_compile_options(earth_and_moon_orbits PRIVATE /W4)
+    target_compile_options(orbit-sim PRIVATE /W4)
 else()
-    target_compile_options(earth_and_moon_orbits PRIVATE -Wall -Wextra -pedantic)
+    target_compile_options(orbit-sim PRIVATE -Wall -Wextra -pedantic)
 endif()
+
+# Find and link CURL AFTER creating the target
+find_package(CURL REQUIRED)
+target_link_libraries(orbit-sim PRIVATE CURL::libcurl)
