@@ -23,20 +23,26 @@
  *    - fetch
  ***********************/
 struct CLIOptions {
-    std::string command;       ///< Command name
-    std::string systemFile;    ///< JSON file (for run/info)
-    int steps = -1;            ///< Number of simulation steps
-    double dt = -1;            ///< Timestep (seconds)
-    std::string output = "orbit.csv"; ///< Output path
+    std::string command;
+    std::string systemFile;
 
-    // ----- FETCH OPTIONS -----
-    std::string fetchBody;     ///< e.g. "499", "Mars"
-    std::string fetchCenter;   ///< e.g. "0", "@ssb"
-    std::string fetchStart;    ///< Start time (string)
-    std::string fetchStop;     ///< Stop time
-    std::string fetchStep;     ///< Step size ("1 d", "1 h", etc.)
+    int steps = 0;
+    double dt = 0;
+
+    // fetch
+    std::string fetchBody;
+    std::string fetchCenter;
+    std::string fetchStart;
+    std::string fetchStop;
+    std::string fetchStep;
+    std::string output;
+
+    bool usePost = false;
+    bool verbose = false;
 };
 
 CLIOptions parseCLI(int argc, char** argv);
+void printGlobalHelp();
+void printCommandHelp(const std::string& command);
 
 #endif  // ORBIT_SIM_CLI_H
