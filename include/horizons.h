@@ -32,12 +32,16 @@ struct HorizonsFetchOptions {
 /********************
  * fetchHorizonsEphemeris
  * @brief: Calls the HORIZONS File API and writes raw ephemeris to a file.
- *
- * @param opts       - HORIZONS request options
+ * @param fetchOpt   - HORIZONS request options
  * @param outputPath - File where the ephemeris text (from JSON "result") is saved
+ * @param verbose    - Enable verbose output
  * @return true on success, false on failure
  *********************/
 bool fetchHorizonsEphemeris(const HorizonsFetchOptions& opts,
-                            const std::string& outputPath);
+                            const std::string& outputPath,
+                            bool verbose);
+bool fetchHorizonsEphemerisPOST(const HorizonsFetchOptions& opts,
+                                const std::string& outputPath,
+                                bool verbose);
 
 #endif // ORBIT_SIM_HORIZONS_H
