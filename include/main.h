@@ -15,6 +15,8 @@
 #include "vec3.h"
 #include "cli.h"
 #include "json_loader.h"
+#include "horizons.h"
+#include "validate.h"
 #include <iostream>
 #include <string>
 #include <filesystem>

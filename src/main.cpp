@@ -11,14 +11,8 @@
  *      - Fetching raw ephemeris from NASA HORIZONS
  *********************/
 
-#include <iostream>
-#include <string>
-#include <filesystem>
 
-#include "cli.h"
-#include "json_loader.h"
-#include "simulation.h"
-#include "horizons.h"
+#include "main.h"
 
 /********************
  * printSystemInfo
@@ -66,8 +60,18 @@ void listSystems(const std::string& dir = "systems") {
  * @brief: Parses CLI arguments and performs actions.
  *********************/
 int main(int argc, char** argv) {
-
     CLIOptions opt = parseCLI(argc, argv);
+
+    // ----- HELP -----
+    if (opt.command == "help") {
+        if (!opt.systemFile.empty()) {
+            // "systemFile" holds the subcommand name for help, e.g. "run"
+            printCommandHelp(opt.systemFile);
+        } else {
+            printGlobalHelp();
+        }
+        return 0;
+    }
 
     // ----- LIST -----
     if (opt.command == "list") {
@@ -83,6 +87,16 @@ int main(int argc, char** argv) {
         }
         printSystemInfo(opt.systemFile);
         return 0;
+    }
+
+    // ----- VALIDATE -----
+    if (opt.command == "validate") {
+        if (opt.systemFile.empty()) {
+            std::cerr << "❌ Must specify --system <file.json>\n";
+            return 1;
+        }
+        bool ok = validateSystemFile(opt.systemFile);
+        return ok ? 0 : 1;
     }
 
     // ----- FETCH (NASA HORIZONS) -----
@@ -103,10 +117,10 @@ int main(int argc, char** argv) {
 
         HorizonsFetchOptions hopt;
         hopt.command    = opt.fetchBody;
-        hopt.center     = opt.fetchCenter.empty() ? "@0"      : opt.fetchCenter;
+        hopt.center     = opt.fetchCenter.empty() ? "@0" : opt.fetchCenter;
         hopt.start_time = opt.fetchStart;
         hopt.stop_time  = opt.fetchStop;
-        hopt.step_size  = opt.fetchStep.empty()   ? "1 d"    : opt.fetchStep;
+        hopt.step_size  = opt.fetchStep.empty() ? "1 d" : opt.fetchStep;
 
         std::cout << "Fetching NASA JPL Horizons ephemeris:\n"
                   << " - Body:   " << hopt.command    << "\n"
@@ -116,7 +130,14 @@ int main(int argc, char** argv) {
                   << " - Step:   " << hopt.step_size  << "\n"
                   << " - Output: " << opt.output      << "\n";
 
-        bool ok = fetchHorizonsEphemeris(hopt, opt.output);
+        // ✅ Use hopt and opt.output, and pass verbose
+        bool ok = false;
+
+        if (opt.usePost) {
+            ok = fetchHorizonsEphemerisPOST(hopt, opt.output, opt.verbose);
+        } else {
+            ok = fetchHorizonsEphemeris(hopt, opt.output, opt.verbose);
+        }
         return ok ? 0 : 1;
     }
 
@@ -135,13 +156,18 @@ int main(int argc, char** argv) {
             int steps = (opt.steps > 0 ? opt.steps : 8766);
             double dt = (opt.dt > 0 ? opt.dt : 3600.0);  // default: 1 hour
 
+            // Default output if empty
+            std::string outPath = opt.output.empty()
+                                  ? "build/orbit_three_body.csv"
+                                  : opt.output;
+
             std::cout << "Running simulation:\n"
                       << " - System: " << opt.systemFile << "\n"
                       << " - Steps:  " << steps << "\n"
                       << " - dt:     " << dt << " seconds\n"
-                      << " - Output: " << opt.output << "\n";
+                      << " - Output: " << outPath << "\n";
 
-            runSimulation(bodies, steps, dt, opt.output);
+            runSimulation(bodies, steps, dt, outPath);
         }
         catch (const std::exception& e) {
             std::cerr << "❌ Simulation failed: " << e.what() << "\n";
@@ -154,10 +180,12 @@ int main(int argc, char** argv) {
     // ----- UNKNOWN COMMAND -----
     std::cerr << "❌ Unknown command: " << opt.command << "\n";
     std::cerr << "Valid commands are:\n"
+              << "  orbit-sim help\n"
               << "  orbit-sim list\n"
-              << "  orbit-sim info  --system <file.json>\n"
-              << "  orbit-sim run   --system <file.json> --steps N --dt T\n"
-              << "  orbit-sim fetch --body <ID> --start <date> --stop <date> --output <file>\n";
+              << "  orbit-sim info     --system <file.json>\n"
+              << "  orbit-sim validate --system <file.json>\n"
+              << "  orbit-sim run      --system <file.json> --steps N --dt T\n"
+              << "  orbit-sim fetch    --body <ID> --start <date> --stop <date> --output <file>\n";
 
     return 1;
 }

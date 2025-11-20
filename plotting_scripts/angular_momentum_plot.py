@@ -44,7 +44,7 @@ plt.close()
 # ---------- PLOT 2: Relative drift ----------
 plt.figure(figsize=(10,5))
 plt.plot(df["step"], dL_rel)
-plt.title("Relative Angular Momentum Drift")
+plt.title("Relative Angular Momentum Drift")    
 plt.xlabel("Step")
 plt.ylabel("ΔL / L₀")
 plt.grid(True)
