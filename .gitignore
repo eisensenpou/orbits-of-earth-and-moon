@@ -6,6 +6,7 @@
 !*.cpp
 !*.h
 !README.md
+!orbit_sim_cli_reference.md
 !.gitignore
 !*.py
 !*.gif
