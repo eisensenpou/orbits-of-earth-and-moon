@@ -17,6 +17,8 @@
 !results/**
 !systems/
 !systems/**
+!external
+!external/**
 !plotting_scripts
 !plotting_scripts/**/
 !CMakeLists.txt
