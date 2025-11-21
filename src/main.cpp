@@ -151,6 +151,12 @@ int main(int argc, char** argv) {
         try {
             // Load system from JSON
             auto bodies = loadSystemFromJSON(opt.systemFile);
+            
+            // NEW: normalize to barycenter if requested
+            if (opt.normalize) {
+                std::cout << " - Normalizing to barycenter frame...\n";
+                physics::normalizeToBarycenter(bodies);
+            }
 
             // Determine simulation steps and dt
             int steps = (opt.steps > 0 ? opt.steps : 8766);

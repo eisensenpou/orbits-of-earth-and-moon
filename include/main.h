@@ -17,6 +17,7 @@
 #include "json_loader.h"
 #include "horizons.h"
 #include "validate.h"
+#include "barycenter.h"
 #include <iostream>
 #include <string>
 #include <filesystem>

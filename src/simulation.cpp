@@ -163,6 +163,30 @@ void rk4Step(std::vector<CelestialBody>& bodies, double dt) {
 }
 
 /********************
+ * detectSEM
+ * @brief: Detects indices of Sun, Earth, and Moon in the bodies vector.
+ * @param bodies   - vector of CelestialBody objects
+ * @param idxSun   - output index of Sun
+ * @param idxEarth - output index of Earth
+ * @param idxMoon  - output index of Moon
+ * @return true if all three bodies are found, false otherwise
+ *********************/
+bool detectSEM(const std::vector<CelestialBody>& bodies,
+               int& idxSun, int& idxEarth, int& idxMoon)
+{
+    idxSun = idxEarth = idxMoon = -1;
+
+    for (int i = 0; i < (int)bodies.size(); i++) {
+        if (bodies[i].name == "Sun")   idxSun   = i;
+        if (bodies[i].name == "Earth") idxEarth = i;
+        if (bodies[i].name == "Moon")  idxMoon  = i;
+    }
+
+    return (idxSun >= 0 && idxEarth >= 0 && idxMoon >= 0);
+}
+
+
+/********************
  * runSimulation
  * @brief: Generic N-body simulation runner using RK4 integrator.
  * @param bodies     - vector of CelestialBody objects (from JSON)
@@ -199,8 +223,31 @@ void runSimulation(std::vector<CelestialBody>& bodies,
         C0.P[2]*C0.P[2]
     );
 
+    // ---------------------------------------------
+    // Optional eclipse logging for Sun–Earth–Moon
+    // ---------------------------------------------
+    int idxSun, idxEarth, idxMoon;
+    bool isSEM = detectSEM(bodies, idxSun, idxEarth, idxMoon);
+
+    std::ofstream eclipseFile;
+    if (isSEM) {
+        std::string eclipsePath = "build/eclipse_log.csv";
+        eclipseFile.open(eclipsePath);
+
+        if (!eclipseFile) {
+            std::cerr << "⚠️ Could not open eclipse log file: " << eclipsePath << "\n";
+            isSEM = false; // disable logging if file failed
+        } else {
+            eclipseFile << "step,"
+                        << "shadow_x,shadow_y,shadow_z,"
+                        << "umbraRadius,penumbraRadius,eclipseType\n";
+
+            std::cout << "🌓 Eclipse logging enabled → " << eclipsePath << "\n";
+        }
+    }
+
     // ============================
-    // Open CSV file
+    // Open main CSV file
     // ============================
     std::ofstream file(outputPath);
 
@@ -247,8 +294,27 @@ void runSimulation(std::vector<CelestialBody>& bodies,
         double dL = (Lmag - L0) / L0;
         double dP = (Pmag - P0mag) / (P0mag == 0 ? 1.0 : P0mag);
 
+        // ---------------------------------------------
+        // Eclipse logging (Sun–Earth–Moon only)
+        // ---------------------------------------------
+        if (isSEM) {
+            const vec3& S = bodies[idxSun].position;
+            const vec3& E = bodies[idxEarth].position;
+            const vec3& M = bodies[idxMoon].position;
+
+            EclipseResult e = computeSolarEclipse(S, E, M);
+
+            eclipseFile << i << ","
+                        << e.shadowCenter.x() << ","
+                        << e.shadowCenter.y() << ","
+                        << e.shadowCenter.z() << ","
+                        << e.umbraRadius << ","
+                        << e.penumbraRadius << ","
+                        << e.eclipseType << "\n";
+        }
+
         // ============================
-        // CSV ROW
+        // CSV ROW (main orbit data)
         // ============================
         file << i << ",";
 
@@ -269,6 +335,9 @@ void runSimulation(std::vector<CelestialBody>& bodies,
     }
 
     file.close();
+    if (isSEM) {
+        eclipseFile.close();
+    }
+
     std::cout << "✅ Simulation complete: " << outputPath << "\n";
 }
-
