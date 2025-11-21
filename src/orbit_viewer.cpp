@@ -36,6 +36,14 @@ struct Frame {
 static int g_windowWidth  = 800;
 static int g_windowHeight = 600;
 static std::vector<Frame> g_frames;
+// Orbit camera state
+static float g_yaw   = glm::radians(45.0f);  // around Y axis
+static float g_pitch = glm::radians(20.0f);  // up/down
+static float g_radius = 400.0f;              // distance from origin
+
+static bool   g_mouseRotating = false;
+static double g_lastMouseX    = 0.0;
+static double g_lastMouseY    = 0.0;
 
 // Advance 1 frame per render for now
 static size_t g_frameIndex = 0;
@@ -55,6 +63,66 @@ static void framebuffer_size_callback(GLFWwindow* win, int w, int h) {
     g_windowHeight = h;
     glViewport(0, 0, w, h);
 }
+
+/*****************
+ * mouse_button_callback
+ * @param window GLFW window pointer
+ * @param button Mouse button
+ * @param action Press/release
+ * @param mods Modifier keys
+ * @note Starts/stops camera rotation on right mouse button
+ ******************/
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if (action == GLFW_PRESS) {
+            g_mouseRotating = true;
+            glfwGetCursorPos(window, &g_lastMouseX, &g_lastMouseY);
+        } else if (action == GLFW_RELEASE) {
+            g_mouseRotating = false;
+        }
+    }
+}
+
+/*****************
+ * cursor_pos_callback
+ * @param window GLFW window pointer
+ * @param xpos New cursor X position
+ * @param ypos New cursor Y position
+ * @note Updates camera yaw/pitch when rotating
+ ******************/
+static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (!g_mouseRotating) return;
+
+    double dx = xpos - g_lastMouseX;
+    double dy = ypos - g_lastMouseY;
+    g_lastMouseX = xpos;
+    g_lastMouseY = ypos;
+
+    // sensitivity scaling
+    float sensitivity = 0.005f;
+    g_yaw   += static_cast<float>(dx) * sensitivity;
+    g_pitch -= static_cast<float>(dy) * sensitivity; // invert so dragging up looks down
+
+    // clamp pitch to avoid flipping over the top
+    const float pitchLimit = glm::radians(89.0f);
+    if (g_pitch > pitchLimit)  g_pitch = pitchLimit;
+    if (g_pitch < -pitchLimit) g_pitch = -pitchLimit;
+}
+
+/***************
+ * scroll_callback
+ * @param window GLFW window pointer
+ * @param xoffset Scroll in X (unused)
+ * @param yoffset Scroll in Y
+ * @note Zooms the camera in/out
+ ****************/
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    // zoom in/out
+    g_radius -= static_cast<float>(yoffset) * 10.0f;
+    if (g_radius < 50.0f)   g_radius = 50.0f;
+    if (g_radius > 2000.0f) g_radius = 2000.0f;
+}
+
 
 /*******************
  * loadCSV
@@ -195,6 +263,9 @@ int main() {
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     // --- Load OpenGL functions via GLAD ---
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -261,10 +332,7 @@ int main() {
 
     glBindVertexArray(0);
 
-    // --- Camera setup (static for now) ---
-    glm::vec3 camPos   = glm::vec3(0.0f, 0.0f, 400.0f);
-    glm::vec3 camTarget= glm::vec3(0.0f);
-    glm::vec3 camUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+
 
     // --- Main loop ---
     while (!glfwWindowShouldClose(window)) {
@@ -283,6 +351,15 @@ int main() {
         float aspect = (g_windowWidth > 0 && g_windowHeight > 0)
                        ? (float)g_windowWidth / (float)g_windowHeight
                        : 4.0f / 3.0f;
+
+        // Compute camera position from spherical coords
+        glm::vec3 camPos;
+        camPos.x = g_radius * std::cos(g_pitch) * std::sin(g_yaw);
+        camPos.y = g_radius * std::sin(g_pitch);
+        camPos.z = g_radius * std::cos(g_pitch) * std::cos(g_yaw);
+
+        glm::vec3 camTarget = glm::vec3(0.0f);        // look at origin
+        glm::vec3 camUp     = glm::vec3(0.0f, 1.0f, 0.0f);
 
         glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                           aspect,
