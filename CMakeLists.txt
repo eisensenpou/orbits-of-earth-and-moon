@@ -1,19 +1,29 @@
 cmake_minimum_required(VERSION 3.14)
 project(EarthAndMoonOrbits VERSION 1.0 LANGUAGES C CXX)
 
-# Require modern C++
+# ------------------------------------------------------------
+# Global Settings
+# ------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Put all executables in build/bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Include project headers
+# Project include directory
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# ============================================================
+# ------------------------------------------------------------
+# External Dependencies
+# ------------------------------------------------------------
+find_package(OpenGL REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)       # for matrices & vectors
+find_package(CURL REQUIRED)
+
+# ------------------------------------------------------------
 # GLAD
-# ============================================================
+# ------------------------------------------------------------
 add_library(glad STATIC
     ${PROJECT_SOURCE_DIR}/external/glad/src/glad.c
 )
@@ -22,49 +32,68 @@ target_include_directories(glad PUBLIC
     ${PROJECT_SOURCE_DIR}/external/glad/include
 )
 
-# ============================================================
-# OpenGL Viewer
-# ============================================================
-find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
+# ------------------------------------------------------------
+# orbit_core (physics library)
+# ------------------------------------------------------------
+add_library(orbit_core STATIC
+    src/core/simulation.cpp
+    src/core/conservations.cpp
+    src/core/barycenter.cpp
+    src/core/eclipse.cpp
+    src/core/json_loader.cpp
+    src/core/utils.cpp
+)
 
+target_include_directories(orbit_core PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+target_compile_features(orbit_core PUBLIC cxx_std_17)
+
+# ------------------------------------------------------------
+# orbit-viewer (OpenGL renderer)
+# ------------------------------------------------------------
 add_executable(orbit-viewer
-    ${PROJECT_SOURCE_DIR}/src/orbit_viewer.cpp
+    src/viewer/orbit_viewer.cpp
+    src/viewer/csv_loader.cpp
+    src/viewer/sphere_mesh.cpp
+    ${PROJECT_SOURCE_DIR}/external/glad/src/glad.c
 )
 
 target_include_directories(orbit-viewer PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/external/glad/include
 )
 
-if(UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE)
     target_link_libraries(orbit-viewer PRIVATE
+        orbit_core
         glad
         glfw
         OpenGL::GL
+        glm::glm
         dl
         pthread
     )
 else()
     target_link_libraries(orbit-viewer PRIVATE
+        orbit_core
         glad
         glfw
         OpenGL::GL
+        glm::glm
     )
 endif()
 
-# ============================================================
-# CLI: orbit-sim
-# ============================================================
-file(GLOB SRC_FILES
-    ${PROJECT_SOURCE_DIR}/src/*.cpp
+# ------------------------------------------------------------
+# orbit-sim (CLI executable)
+# ------------------------------------------------------------
+add_executable(orbit-sim
+    src/cli/main.cpp
+    src/cli/cli.cpp
+    src/io/validate.cpp
+    src/io/horizons.cpp
 )
-
-list(REMOVE_ITEM SRC_FILES
-    ${PROJECT_SOURCE_DIR}/src/orbit_viewer.cpp
-)
-
-# Define executable
-add_executable(orbit-sim ${SRC_FILES})
 
 # Compiler warnings
 if (MSVC)
@@ -73,6 +102,7 @@ else()
     target_compile_options(orbit-sim PRIVATE -Wall -Wextra -pedantic)
 endif()
 
-# CURL for Horizons
-find_package(CURL REQUIRED)
-target_link_libraries(orbit-sim PRIVATE CURL::libcurl)
+target_link_libraries(orbit-sim PRIVATE
+    orbit_core
+    CURL::libcurl
+)
