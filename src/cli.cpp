@@ -87,6 +87,9 @@ CLIOptions parseCLI(int argc, char** argv) {
         } else if (a == "--post") {
             opt.usePost = true;
         }
+        else if (a == "--normalize") {
+            opt.normalize = true;
+        }
         // ----- Unknown Option -----
         else {
             std::cerr << "Unknown option: " << a << "\n";
@@ -121,6 +124,7 @@ void printCommandHelp(const std::string& cmd) {
                   << "  --system FILE    Path to system JSON\n"
                   << "  --steps N        Number of integration steps\n"
                   << "  --dt T           Timestep in seconds\n\n"
+                  << "  --normalize       Shift system so COM=0 and net momentum=0\n\n"
                   << "Example:\n"
                   << "  orbit-sim run --system systems/earth_moon.json --steps 8766 --dt 3600\n";
         return;

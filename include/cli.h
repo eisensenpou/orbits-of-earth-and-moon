@@ -21,6 +21,8 @@
  *    - list
  *    - info
  *    - fetch
+ *   - validate
+ * @note: Additional fields can be added as needed.
  ***********************/
 struct CLIOptions {
     std::string command;
@@ -39,6 +41,7 @@ struct CLIOptions {
 
     bool usePost = false;
     bool verbose = false;
+    bool normalize = false;
 };
 
 CLIOptions parseCLI(int argc, char** argv);
