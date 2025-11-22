@@ -7,9 +7,10 @@
  * Notes:
  *  - Uses option C lighting (ambient-boosted Lambert + rim)
  *  - Sun, Earth, Moon drawn as UV spheres (SphereMesh)
- *  - Orbital scaling / exaggeration is handled in CSVLoader
- *  - Right mouse drag = orbit camera, scroll = zoom
- *  - Simple HUD legend (Sun/Earth/Moon) in top-left
+ *  - Moon orbit is exaggerated in CSV loader for visibility
+ *  - HUD legend (Sun / Earth / Moon) in top-left
+ *  - NEW: click legend squares to change camera center
+ *        (Sun / Earth / Moon). Scroll = zoom, RMB drag = orbit.
  *************************/
 
 #include <iostream>
@@ -31,18 +32,27 @@
 static int   g_windowWidth  = 1280;
 static int   g_windowHeight = 720;
 
-// Orbit camera state
-static float g_yaw   = glm::radians(45.0f);   // around Y axis
-static float g_pitch = glm::radians(20.0f);   // up/down
-static float g_radius = 400.0f;               // distance from origin
+// Orbit camera spherical coords
+static float g_yaw   = glm::radians(45.0f);
+static float g_pitch = glm::radians(20.0f);
+static float g_radius = 250.0f;   // distance from target
 
 static bool   g_mouseRotating = false;
 static double g_lastMouseX = 0.0;
 static double g_lastMouseY = 0.0;
 
-// Simulation frames
 static size_t g_frameIndex = 0;
 static std::vector<Frame> g_frames;
+
+// Camera target selection
+enum class CameraTarget {
+    Barycenter = 0,
+    Sun,
+    Earth,
+    Moon
+};
+
+static CameraTarget g_cameraTarget = CameraTarget::Barycenter;
 
 // Legend rendering objects (2D)
 static GLuint g_legendShader = 0;
@@ -52,16 +62,20 @@ static GLint  g_legLocOffset = -1;
 static GLint  g_legLocScale  = -1;
 static GLint  g_legLocColor  = -1;
 
+// Legend layout (in pixels)
+static const float LEGEND_BASE_X   = 28.0f;  // from left
+static const float LEGEND_BASE_Y   = 40.0f;  // from top
+static const float LEGEND_SPACING  = 24.0f;  // between rows
+static const float LEGEND_SIZE_PX  = 14.0f;  // base square size
+
+// Forward declaration so mouse callback can call this
+static void handleLegendClick(double mouseX, double mouseY);
 
 // --------------------------------------------------
 // Callbacks
 // --------------------------------------------------
 /**
  * @brief Handles window resize events by updating the viewport.
- *
- * @param The GLFW window.
- * @param w The new width of the window.
- * @param h The new height of the window.
  */
 static void framebuffer_size_callback(GLFWwindow*, int w, int h) {
     g_windowWidth  = w;
@@ -70,14 +84,9 @@ static void framebuffer_size_callback(GLFWwindow*, int w, int h) {
 }
 
 /**
- * @brief Handles mouse button events for initiating or stopping rotation.
- *
- * Right mouse button: hold & drag to orbit.
- *
- * @param win   The GLFW window.
- * @param button The mouse button that was pressed or released.
- * @param action The action (press or release).
- * @param mods   Modifier keys (not used).
+ * @brief Handles mouse button events for:
+ *  - RMB press/release → start/stop camera rotation
+ *  - LMB press on legend → change camera target
  */
 static void mouse_button_callback(GLFWwindow* win, int button, int action, int /*mods*/) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
@@ -88,40 +97,37 @@ static void mouse_button_callback(GLFWwindow* win, int button, int action, int /
             g_mouseRotating = false;
         }
     }
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        double mx, my;
+        glfwGetCursorPos(win, &mx, &my);
+        handleLegendClick(mx, my);
+    }
 }
 
 /**
- * @brief Handles cursor position changes for mouse-based rotation.
- *
- * @param xpos The new x-coordinate of the cursor.
- * @param ypos The new y-coordinate of the cursor.
+ * @brief Handles cursor position changes for mouse rotation.
  */
 static void cursor_pos_callback(GLFWwindow*, double xpos, double ypos) {
     if (!g_mouseRotating) return;
-
     double dx = xpos - g_lastMouseX;
     double dy = ypos - g_lastMouseY;
 
     g_lastMouseX = xpos;
     g_lastMouseY = ypos;
 
-    const float sensitivity = 0.005f;
-    g_yaw   += static_cast<float>(dx) * sensitivity;
-    g_pitch -= static_cast<float>(dy) * sensitivity;
+    g_yaw   += static_cast<float>(dx) * 0.005f;
+    g_pitch -= static_cast<float>(dy) * 0.005f;
 
-    // Clamp pitch to avoid flipping over the poles
-    const float pitchLimit = glm::radians(89.0f);
-    g_pitch = glm::clamp(g_pitch, -pitchLimit, pitchLimit);
+    g_pitch = glm::clamp(g_pitch, glm::radians(-89.0f), glm::radians(89.0f));
 }
 
 /**
- * @brief Handles scroll wheel input for zooming the camera.
- *
- * @param yoff Scroll amount in Y (positive = scroll up).
+ * @brief Mouse wheel zoom: scroll up = zoom in, scroll down = zoom out.
  */
 static void scroll_callback(GLFWwindow*, double /*xoff*/, double yoff) {
-    g_radius -= static_cast<float>(yoff) * 10.0f;
-    g_radius  = glm::clamp(g_radius, 50.0f, 2000.0f);
+    g_radius -= static_cast<float>(yoff) * 12.0f;
+    g_radius = glm::clamp(g_radius, 50.0f, 5000.0f);
 }
 
 
@@ -130,10 +136,6 @@ static void scroll_callback(GLFWwindow*, double /*xoff*/, double yoff) {
 // --------------------------------------------------
 /**
  * @brief Compiles a shader of given type from source code.
- *
- * @param type The type of shader (e.g., GL_VERTEX_SHADER).
- * @param src  The source code of the shader.
- * @return GLuint The compiled shader object.
  */
 static GLuint compileShader(GLenum type, const char* src) {
     GLuint s = glCreateShader(type);
@@ -153,14 +155,10 @@ static GLuint compileShader(GLenum type, const char* src) {
 }
 
 /**
- * @brief Creates an OpenGL program object from vertex and fragment shader sources.
- *
- * @param vsSrc Vertex shader source code.
- * @param fsSrc Fragment shader source code.
- * @return GLuint The created OpenGL program object.
+ * @brief Creates an OpenGL program from a vertex + fragment shader pair.
  */
 static GLuint createProgram(const char* vsSrc, const char* fsSrc) {
-    GLuint vs = compileShader(GL_VERTEX_SHADER,   vsSrc);
+    GLuint vs = compileShader(GL_VERTEX_SHADER, vsSrc);
     GLuint fs = compileShader(GL_FRAGMENT_SHADER, fsSrc);
 
     GLuint prog = glCreateProgram();
@@ -189,9 +187,9 @@ static GLuint createProgram(const char* vsSrc, const char* fsSrc) {
 // --------------------------------------------------
 
 /**
- * @brief Initializes the legend renderer (tiny colored quads in NDC).
+ * @brief Initializes the legend renderer: shader + unit quad VAO/VBO.
  *
- * Builds a single unit square mesh we can reuse for each legend box.
+ * Draws small colored squares in NDC that we then place in pixel space.
  */
 static void initLegendRenderer() {
     const char* legendVs = R"GLSL(
@@ -251,12 +249,12 @@ static void initLegendRenderer() {
 }
 
 /**
- * @brief Draws a small colored box at a specified pixel position on the screen.
+ * @brief Draws a small colored box at a specified pixel position.
  *
- * @param centerPx X coordinate of the box center in pixels (from left).
- * @param centerPy Y coordinate of the box center in pixels (from top).
- * @param sizePx   Box size in pixels (width = height).
- * @param color    Box color as an RGB vector.
+ * @param centerPx  X center in window pixels.
+ * @param centerPy  Y center in window pixels.
+ * @param sizePx    Square size in pixels.
+ * @param color     RGB color.
  */
 static void drawLegendBox(float centerPx, float centerPy,
                           float sizePx,
@@ -281,24 +279,53 @@ static void drawLegendBox(float centerPx, float centerPy,
     glBindVertexArray(0);
 }
 
+/**
+ * @brief Handle a left-click; if it lands on a legend box,
+ *        update camera target (Sun/Earth/Moon).
+ */
+static void handleLegendClick(double mouseX, double mouseY) {
+    // Legend row centers in pixels
+    float centersY[3] = {
+        LEGEND_BASE_Y,
+        LEGEND_BASE_Y + LEGEND_SPACING,
+        LEGEND_BASE_Y + 2.0f * LEGEND_SPACING
+    };
+
+    float halfSize = LEGEND_SIZE_PX * 0.5f;
+    float x0 = LEGEND_BASE_X - halfSize;
+    float x1 = LEGEND_BASE_X + halfSize;
+
+    for (int i = 0; i < 3; ++i) {
+        float yCenter = centersY[i];
+        float y0 = yCenter - halfSize;
+        float y1 = yCenter + halfSize;
+
+        if (mouseX >= x0 && mouseX <= x1 &&
+            mouseY >= y0 && mouseY <= y1) {
+
+            switch (i) {
+                case 0: g_cameraTarget = CameraTarget::Sun;   break;
+                case 1: g_cameraTarget = CameraTarget::Earth; break;
+                case 2: g_cameraTarget = CameraTarget::Moon;  break;
+            }
+
+            std::cout << "📌 Camera target set to "
+                      << (i == 0 ? "Sun" : (i == 1 ? "Earth" : "Moon"))
+                      << "\n";
+            return;
+        }
+    }
+}
+
 
 // --------------------------------------------------
 // MAIN
 // --------------------------------------------------
 /**
  * @brief Entry point for the Orbit Viewer application.
- *
- * Creates an OpenGL window, loads CSV data, builds sphere meshes,
- * and renders the Sun–Earth–Moon system with interactive camera
- * controls and a small HUD legend.
  */
 int main() {
-    // --- Initialize GLFW & window ---
-    if (!glfwInit()) {
-        std::cerr << "❌ Failed to init GLFW\n";
-        return -1;
-    }
-
+    glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -309,7 +336,6 @@ int main() {
 
     if (!win) {
         std::cerr << "❌ Failed to create window\n";
-        glfwTerminate();
         return -1;
     }
 
@@ -321,15 +347,13 @@ int main() {
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "❌ Failed to init GLAD\n";
-        glfwDestroyWindow(win);
-        glfwTerminate();
         return -1;
     }
 
     glEnable(GL_DEPTH_TEST);
 
     // ----------------------------------------------------
-    // Load CSV orbit frames (scaled / exaggerated in CSVLoader)
+    // Load CSV orbit frames (already scaled in CSVLoader)
     // ----------------------------------------------------
     CSVLoader loader;
     g_frames = loader.loadOrbitCSV("../build/orbit_three_body.csv");
@@ -339,16 +363,14 @@ int main() {
     }
 
     // ----------------------------------------------------
-    // Create 3D mesh spheres
-    // Radii are visualization-scale, not physical.
+    // Create 3D mesh spheres (visualization radii)
     // ----------------------------------------------------
-    SphereMesh sunMesh;   sunMesh.build(5.0f,   48, 48);
+    SphereMesh sunMesh;   sunMesh.build(5.0f, 48, 48);
     SphereMesh earthMesh; earthMesh.build(1.0f, 32, 32);
     SphereMesh moonMesh;  moonMesh.build(0.27f, 24, 24);
 
-
     // ----------------------------------------------------
-    // Create main 3D shader (Option C lighting + rim)
+    // Create main 3D shader (Option C lighting)
     // ----------------------------------------------------
     const char* vsSrc = R"GLSL(
         #version 330 core
@@ -387,9 +409,9 @@ int main() {
             vec3 V = normalize(uViewPos - vWorldPos);
             vec3 H = normalize(L + V);
 
-            // Lambert + Blinn–Phong specular
-            float diff    = max(dot(N, L), 0.0);
-            float spec    = pow(max(dot(N, H), 0.0), 32.0);
+            // Lambert + Blinn–Phong
+            float diff = max(dot(N, L), 0.0);
+            float spec = pow(max(dot(N, H), 0.0), 32.0);
             float ambient = 0.18;
 
             vec3 base = uColor * (ambient + diff)
@@ -401,7 +423,7 @@ int main() {
 
             vec3 color = base + rimColor;
 
-            // Simple gamma correction
+            // Gamma
             color = pow(color, vec3(1.0 / 2.2));
 
             FragColor = vec4(color, 1.0);
@@ -435,26 +457,38 @@ int main() {
         if (!g_frames.empty()) {
             const Frame& f = g_frames[g_frameIndex];
 
-            // ---------------- Camera ----------------
+            // Camera offset in local spherical coords
+            glm::vec3 camOffset(
+                g_radius * cos(g_pitch) * sin(g_yaw),
+                g_radius * sin(g_pitch),
+                g_radius * cos(g_pitch) * cos(g_yaw)
+            );
+
+            // Choose camera target (what we orbit around)
+            glm::vec3 target(0.0f);
+            switch (g_cameraTarget) {
+                case CameraTarget::Sun:   target = f.sun;   break;
+                case CameraTarget::Earth: target = f.earth; break;
+                case CameraTarget::Moon:  target = f.moon;  break;
+                case CameraTarget::Barycenter:
+                default:
+                    target = glm::vec3(0.0f);
+                    break;
+            }
+
+            glm::vec3 camPos = target + camOffset;
+
             float aspect = float(g_windowWidth) / float(g_windowHeight);
-
-            glm::vec3 camPos;
-            camPos.x = g_radius * std::cos(g_pitch) * std::sin(g_yaw);
-            camPos.y = g_radius * std::sin(g_pitch);
-            camPos.z = g_radius * std::cos(g_pitch) * std::cos(g_yaw);
-
             glm::mat4 proj = glm::perspective(glm::radians(45.0f),
                                               aspect, 0.1f, 50000.0f);
-            glm::mat4 view = glm::lookAt(camPos,
-                                         glm::vec3(0.0f),
-                                         glm::vec3(0, 1, 0));
+            glm::mat4 view = glm::lookAt(camPos, target, glm::vec3(0, 1, 0));
 
             glUseProgram(shader);
 
-            // View position for specular
+            // view position for specular
             glUniform3fv(locViewPos, 1, glm::value_ptr(camPos));
-            // Light at Sun position
-            glUniform3fv(locLight,   1, glm::value_ptr(f.sun));
+            // light at Sun position
+            glUniform3fv(locLight, 1, glm::value_ptr(f.sun));
 
             // ---------------- Sun ----------------
             glm::mat4 model = glm::translate(glm::mat4(1.0f), f.sun);
@@ -486,34 +520,42 @@ int main() {
         // ------------------------------------------------
         glDisable(GL_DEPTH_TEST);
 
-        float baseX   = 40.0f;  // pixels from left
-        float baseY   = 40.0f;  // pixels from top
-        float spacing = 22.0f;  // vertical spacing
-        float sizePx  = 12.0f;  // box size
+        float size      = LEGEND_SIZE_PX;
+        float sizeSel   = LEGEND_SIZE_PX * 1.4f; // highlight selected
 
-        // Sun icon (matches Sun color)
-        drawLegendBox(baseX,             baseY,              sizePx,
-                      glm::vec3(1.4f, 1.1f, 0.3f));
+        float y0 = LEGEND_BASE_Y;
+        float y1 = LEGEND_BASE_Y + LEGEND_SPACING;
+        float y2 = LEGEND_BASE_Y + 2.0f * LEGEND_SPACING;
 
-        // Earth icon
-        drawLegendBox(baseX,             baseY + spacing,    sizePx,
-                      glm::vec3(0.2f, 0.8f, 1.2f));
+        // Sun icon (top)
+        drawLegendBox(
+            LEGEND_BASE_X, y0,
+            (g_cameraTarget == CameraTarget::Sun ? sizeSel : size),
+            glm::vec3(1.4f, 1.1f, 0.3f)
+        );
 
-        // Moon icon
-        drawLegendBox(baseX,             baseY + 2.0f*spacing,  sizePx,
-                      glm::vec3(0.85f, 0.85f, 0.92f));
+        // Earth icon (middle)
+        drawLegendBox(
+            LEGEND_BASE_X, y1,
+            (g_cameraTarget == CameraTarget::Earth ? sizeSel : size),
+            glm::vec3(0.2f, 0.8f, 1.2f)
+        );
+
+        // Moon icon (bottom)
+        drawLegendBox(
+            LEGEND_BASE_X, y2,
+            (g_cameraTarget == CameraTarget::Moon ? sizeSel : size),
+            glm::vec3(0.85f, 0.85f, 0.92f)
+        );
 
         glEnable(GL_DEPTH_TEST);
 
         glfwSwapBuffers(win);
     }
 
-    // ------------------------------------------------
-    // Cleanup
-    // ------------------------------------------------
     glfwDestroyWindow(win);
 
-    glDeleteProgram(shader);
+    // cleanup legend objects
     glDeleteBuffers(1, &g_legendVBO);
     glDeleteVertexArrays(1, &g_legendVAO);
     glDeleteProgram(g_legendShader);
