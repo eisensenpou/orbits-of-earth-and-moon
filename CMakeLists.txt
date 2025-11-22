@@ -41,7 +41,6 @@ add_library(orbit_core STATIC
     src/core/barycenter.cpp
     src/core/eclipse.cpp
     src/core/json_loader.cpp
-    src/core/utils.cpp
 )
 
 target_include_directories(orbit_core PUBLIC
@@ -57,7 +56,6 @@ add_executable(orbit-viewer
     src/viewer/orbit_viewer.cpp
     src/viewer/csv_loader.cpp
     src/viewer/sphere_mesh.cpp
-    ${PROJECT_SOURCE_DIR}/external/glad/src/glad.c
 )
 
 target_include_directories(orbit-viewer PRIVATE
