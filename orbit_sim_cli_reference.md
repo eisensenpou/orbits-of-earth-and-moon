@@ -70,6 +70,11 @@ Use:
 ```
 ./bin/orbit-sim run   --system ../systems/earth_moon.json   --steps 8760   --dt 3600   --output orbit_year.csv
 ```
+
+```
+./bin/orbit-sim run --system ../systems/solar_system.json --dt 3600 --steps 100000
+```
+
 ------------------------------------------------------------------------
 
 ## 6. FETCH NASA HORIZONS EPHEMERIS --- GET MODE
