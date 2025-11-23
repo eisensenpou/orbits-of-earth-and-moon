@@ -1,199 +1,271 @@
-# 🚀 **Sun--Earth--Moon Orbital Dynamics Simulator**
 
-### *High-precision 3-body gravitational simulation using the Runge--Kutta 4 integrator*
+# 🌍 Orbital Dynamics Simulation Engine
 
-This project models the **three-body gravitational system** of the Sun,
-Earth, and Moon using Newtonian mechanics and a custom-built **RK4
-(Runge--Kutta 4)** integrator written in **C++17**. The output is
-visualized in **Python** using interactive 3D plots and animations.
+*A high-accuracy C++17 N‑Body gravitational simulator with RK4 integration, OpenGL visualization, JPL HORIZONS ephemeris support, and eclipse detection.*
 
-------------------------------------------------------------------------
+---
 
-## 🌌 Features
+## 🚀 Overview
 
-### 🛰️ **Physics Simulation (C++)**
+This project is a full‑featured **orbital mechanics simulation engine** written in modern **C++17**.  
+It numerically propagates arbitrary **N‑body systems** using Newtonian gravity with a custom **Runge–Kutta 4 (RK4)** integrator and outputs high‑precision trajectories.
 
--   Full **3-body gravitational interaction**
--   Classical **Newtonian gravity**
--   **3D vector dynamics** (x, y, z)
--   **Runge--Kutta 4 (RK4)** numerical integrator
--   Correct **barycentric motion** of the Sun
--   Accurate **Earth orbital motion**
--   Moon orbit with **5.145° inclination**
--   One-year simulation; **hourly time step**
--   **Angular-Linear** momentum conversation
--   **Total energy conservation**
+A built‑in **OpenGL 3D viewer** renders the simulated orbits, and Python tools provide plotting, analysis, and animation.
 
-### 📊 **Visualization (Python)**
+The simulator can ingest real ephemeris data from **NASA JPL HORIZONS**, enabling direct comparison between RK4 propagation and real‑world ephemerides.
 
--   3D Sun--Earth--Moon trajectories
--   Earth-centered Moon orbit view
--   Optional **exaggerated Moon orbit** for clarity
--   Export animations to **.mp4** or **.gif**
--   Fully interactive camera controls
+This system is engineered to be **modular, accurate, and extensible** — suitable for research, visualization, and educational use.
 
-------------------------------------------------------------------------
+---
+
+## ✨ Features
+
+### 🧮 Physics & Numerical Integration
+- Full **N‑body Newtonian gravity**
+- Custom **RK4** integrator
+- **Energy**, **linear momentum**, and **angular momentum** drift tracking
+- Barycentric transformation utilities
+- **Eclipse detection** using umbra/penumbra geometry
+
+---
+
+### 🗂 Data & Configuration
+- JSON‑defined systems (planets, moons, binary systems, custom bodies)
+- Output CSV includes:
+  - Positions & velocities
+  - Energies & momenta
+  - Eclipse flags
+  - Timestamps
+- Supports Solar System data
+
+---
+
+### 🛰 HORIZONS Integration
+- Fetch real ephemerides from **NASA JPL HORIZONS**
+- Configure:
+  - Target body
+  - Center body
+  - Time span
+  - Step size
+  - Frame (barycentric, heliocentric)
+- Useful for:
+  - model validation  
+  - drift measurement  
+  - comparing simulated vs. observed orbits  
+
+---
+
+### 🎥 3D Visualization
+- OpenGL 3.3 orbit viewer
+- Physically‑scaled planets (optional exaggeration modes)
+- Reverse‑Z infinite‑distance projection
+- Real‑time sphere-mesh rendering
+- Dynamic camera:
+  - Rotate, zoom, pan
+  - Focus on any planet (Sun → Neptune)
+- Visual legend
+- Smooth lighting + rim‑light shading
+- Ideal for Solar System playback
+
+---
 
 ## 📁 Project Structure
 
-    earth-and-moon-orbits/
-    ├── include/
-    │   ├── body.h
-    │   ├── main.h
-    │   ├── simulation.h
-    │   ├── utils.h
-    │   ├── eclipse.h
-    │   ├── vec3.h
-    │   ├── ray.h       
-    │   └── conservations.h
-    ├── src/
-    │   ├── main.cpp
-    │   ├── simulation.cpp
-    │   ├── utils.cpp
-    │   ├── conservations.cpp
-    │   └── eclipse.cpp
-    ├── plotting_scripts/
-    │   ├── 3Dexaggerated_plot.py
-    │   ├── 3Dplot_eaerth_moon.py
-    │   ├── 3Dplot.py
-    │   └── 3Draytracking.py
-    ├── orbit_three_body.csv
-    ├── requirements.txt
-    ├── LICENSE
-    ├── README.md -> this file
-    └── CMakeLists.txt
+```
+orbits-of-earth-and-moon/
+│
+├── include/
+│   ├── body.h
+│   ├── simulation.h
+│   ├── json_loader.h
+│   ├── barycenter.h
+│   ├── eclipse.h
+│   ├── conservations.h
+│   └── viewer/
+│       ├── csv_loader.h
+│       └── sphere_mesh.h
+│
+├── src/
+│   ├── core/            # Physics engine
+│   ├── io/              # JSON + HORIZONS
+│   ├── cli/             # Command-line interface
+│   ├── viewer/          # OpenGL renderer
+│   └── …
+│
+├── external/glad        # glad library
+├── systems/             # JSON orbital systems
+├── shaders/             # GLSL shaders
+├── results/             # CSV output + plots
+├── plotting_scripts/    # Python analysis tools
+├── cli_reference.md     # commands for orbit-sim
+└── README.md
+```
 
-------------------------------------------------------------------------
+---
 
-## ⚙️ Building the Simulation
+## 🛠 Building
 
-### **Requirements**
+### Requirements
+- C++17 compiler
+- CMake ≥ 3.10
+- OpenGL 3.3
+- GLAD
+- GLFW3
+- Python 3 (optional, for plotting)
 
--   CMake ≥ 3.14
--   C++17 compiler (GCC / Clang / MSVC)
+### Build Steps
 
-### **Build & Run (Linux/macOS)**
-
-``` bash
+```bash
+git clone https://github.com/eisensenpou/orbits-of-earth-and-moon.git
+cd orbits-of-earth-and-moon
 mkdir build && cd build
 cmake ..
-make
-./bin/earth_and_moon_orbits
+make -j
 ```
 
-This generates:
+Executables appear in `build/bin/`:
 
-    orbit_three_body.csv
+- `orbit-sim` — main simulation engine  
+- `orbit-viewer` — real‑time 3D visualization  
 
-------------------------------------------------------------------------
+---
 
-## 📊 Visualization (Python)
+## ▶️ Running Simulations
 
-Install dependencies:
+### Simulate an orbital system
 
-``` bash
-pip install -r requirements.txt
+```bash
+./orbit-sim run \
+    --system ../systems/earth_moon.json \
+    --steps 20000 \
+    --dt 60 \
+    --out ../results/out.csv
 ```
 
-Run standard plot:
+### Fetch HORIZONS ephemerides
 
-``` bash
-python 3Dplot.py
+```bash
+./orbit-sim fetch \
+    --target 399 \
+    --center 0 \
+    --start "2025-01-01" \
+    --stop  "2025-01-02" \
+    --step  "360m" \
+    --out earth_ephem.txt
 ```
 
-Run exaggerated Moon orbit:
+### Validate a system file
 
-``` bash
-python 3D_exaggerated_plot.py
+```bash
+./orbit-sim info --system ../systems/earth_moon.json
 ```
 
-------------------------------------------------------------------------
+---
 
-## 🎥 Saving Animations
+## 🎥 3D Orbit Viewer
 
-``` python
-import shutil
+Launch with:
 
-if shutil.which("ffmpeg"):
-    ani.save("earth_moon_orbits.mp4", writer="ffmpeg", fps=30)
-elif shutil.which("magick"):
-    ani.save("earth_moon_orbits.gif", writer="imagemagick", fps=30)
+```bash
+./orbit-viewer ../results/out.csv
 ```
 
-------------------------------------------------------------------------
+### Controls
+| Action | Input |
+|-------|--------|
+| Rotate | Right mouse drag |
+| Zoom | Scroll wheel |
+| Pan | Middle drag |
+| Change focus | Click legend (Sun/Earth/Moon) |
+| Hotkeys | `1`..`0` select Sun→Neptune |
+| Reset camera | `R` |
 
-## 🧠 Physics Model
+Uses real planetary radii and optional distance‑compression scaling for visibility.
 
-### Integrator
+---
 
-Runge--Kutta 4 (RK4), fixed timestep
+## 📊 Python Visualization Tools
 
-### Timestep
+From `plotting_scripts/`:
 
-Δt = 3600 seconds (1 hour)
+```bash
+python3 plot_orbits.py ../results/out.csv
+python3 animate_orbits.py
+```
 
-### Bodies
+Includes:
+- 2D orbit plots
+- 3D matplotlib playback
+- Animated GIF/MP4 generation
+- Energy/momentum drift graphs
 
-| Body  | Mass (kg)     | Notes                         |
-|-------|---------------|-------------------------------|
-| Sun   | 1.9891×10³⁰   | Free-moving; barycentric wobble |
-| Earth | 5.972×10²⁴    | 1 AU; ~30 km/s                |
-| Moon  | 7.3477×10²²   | 384,400 km; 5.145° inclination |
+---
 
-------------------------------------------------------------------------
+## 📐 Physics Notes
 
-## Orbit Visualizations
+### Newtonian gravity
+$$
+\vec{F} = -G \frac{m_1 m_2}{r^3} \vec{r}
+$$
 
-### Actual Orbits
+### RK4 integration
+$$
+y_{n+1} = y_n + \frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+$$
 
-![Earth and Moon orbiting the Sun](results/orbits/orbit_3d.gif)
+### Conservation tracking
+- Kinetic energy  
+- Potential energy  
+- Total energy drift  
+- Linear & angular momentum  
 
-The Moon (brown dot) is too small that it isn't visible. It orbits around the earth. 
+### Eclipse detection
+- Umbra / penumbra cones  
+- Angular geometry tests  
+- Line‑of‑sight visibility  
 
-### Earth-Moon Orbit (Earth Centered)
+---
 
-![Earth and moon](results/orbits/earth_moon_3d.gif)
+## 🧪 Validation With NASA HORIZONS
 
-### Exaggerated Moon Orbit
+Direct comparison with:
+- DE441 ephemerides  
+- Barycentric or heliocentric frames  
+- Geometric or light‑time‑corrected vectors  
 
-![Earth and moon orbiting the Sun with an Exaggerated Moon orbit for visual purposes](results/orbits/orbit_3d_exaggerated.gif)
+Useful for:
+- Evaluating integrator stability  
+- Verifying orbital parameters  
+- Monitoring Moon–Earth distance accuracy  
 
-------------------------------------------------------------------------
+---
 
-## Energy-Momentum Conservations
+## 🛤 Roadmap
 
-### Energy Conservation
+Future upgrades:
 
-![Energy Conservation in Sun-Earth-Moon Simulation](results/conservation-graphs/energy_conservation.png)
+- Adaptive RK45 integrator  
+- Barnes–Hut tree acceleration  
+- GPU kernels (CUDA/OpenCL)  
+- In‑viewer time controls  
+- Planetary textures  
+- Orbital trails  
+- GUI (ImGui) overlay  
+- Ephemeris interpolation  
 
-Total energy conserved.
+---
 
-### Energy Drift
+## 📜 License
 
-![Relative Energy Drift (1E-15)](results/conservation-graphs/energy_drift.png)
+MIT License
 
-Since the relative energy drift is so small, we can say that the integration is very accurate.
+---
 
-### Angular Momentum
+## 👨‍🚀 Author
 
-![Total Angular Moemntum](results/conservation-graphs/angular_momentum.png)
+**Sinan Can Demir**  
+Aspiring Aerospace / Simulation Engineer  
 
-### Angular Momentum Drift
+GitHub: https://github.com/eisensenpou  
+LinkedIn: https://linkedin.com/in/sinan-can-demir  
 
-![Angular Momentum Drift](results/conservation-graphs/angular_momentum_drift.png)
-
-
-------------------------------------------------------------------------
-
-## 👨‍💻 Author
-
-**Sinan Demir**  
-A hobbyist exploring orbital mechanics, physics simulations, and visualization.
-
-> “Somewhere, something incredible is waiting to be known.” — *Carl Sagan*
-
-------------------------------------------------------------------------
-
-## 🛰️ License
-
-![MIT License](LICENSE)
