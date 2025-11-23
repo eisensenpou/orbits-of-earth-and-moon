@@ -1,0 +1,67 @@
+{
+  "name": "Solar System (circularized, approximate)",
+  "epoch": "2025-01-01 00:00:00 TDB",
+  "note": "Positions and velocities approximate circular orbits, not exact JPL Horizons output. Replace via horizons module if higher fidelity is required.",
+  "bodies": [
+    {
+      "name": "Sun",
+      "mass": 1.98847e30,
+      "position": [0.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0]
+    },
+    {
+      "name": "Mercury",
+      "mass": 3.3011e23,
+      "position": [5.791030595e10, 0.0, 0.0],
+      "velocity": [0.0, 47360.0, 0.0]
+    },
+    {
+      "name": "Venus",
+      "mass": 4.8675e24,
+      "position": [1.0820896437070247e11, 0.0, 0.0],
+      "velocity": [0.0, 35020.0, 0.0]
+    },
+    {
+      "name": "Earth",
+      "mass": 5.9722e24,
+      "position": [149597870700.0, 0.0, 0.0],
+      "velocity": [0.0, 29780.0, 0.0]
+    },
+    {
+      "name": "Moon",
+      "mass": 7.342e22,
+      "position": [149982270700.0, 0.0, 0.0],
+      "velocity": [0.0, 30802.0, 0.0]
+    },
+    {
+      "name": "Mars",
+      "mass": 6.4171e23,
+      "position": [2.2794380302760932e11, 0.0, 0.0],
+      "velocity": [0.0, 24077.0, 0.0]
+    },
+    {
+      "name": "Jupiter",
+      "mass": 1.8982e27,
+      "position": [7.78571386152288e11, 0.0, 0.0],
+      "velocity": [0.0, 13070.0, 0.0]
+    },
+    {
+      "name": "Saturn",
+      "mass": 5.6834e26,
+      "position": [1.4335298910672743e12, 0.0, 0.0],
+      "velocity": [0.0, 9680.0, 0.0]
+    },
+    {
+      "name": "Uranus",
+      "mass": 8.681e25,
+      "position": [2.871400410510407e12, 0.0, 0.0],
+      "velocity": [0.0, 6800.0, 0.0]
+    },
+    {
+      "name": "Neptune",
+      "mass": 1.02413e26,
+      "position": [4.497021470235629e12, 0.0, 0.0],
+      "velocity": [0.0, 5430.0, 0.0]
+    }
+  ]
+}
